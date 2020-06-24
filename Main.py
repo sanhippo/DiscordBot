@@ -10,7 +10,6 @@ workbook = gc.open("Elantris Downtime")
 
 Testing = 1
 
-
 if Testing == 0:
     token = os.environ.get('DiscordToken') # Actual Token
     sheetactivites = workbook.worksheet("Downtime")
