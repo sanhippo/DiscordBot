@@ -2,6 +2,7 @@ import random
 import discord
 import gspread
 import os
+import asyncio
 from datetime import datetime, timezone
 
 gc = gspread.service_account()
@@ -22,6 +23,7 @@ else:
     sheetlog = workbook.worksheet("LogTest")
     sheetplayerinfo = workbook.worksheet("PlayerTest")
     sheetinfo = workbook.worksheet("Info")
+    sheetstatus = workbook.worksheet("Status")
 
 client = discord.Client()
 
@@ -304,6 +306,35 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    if message.content.startswith("$Test"):
+        await test(10)
+        return
+
+
+    if message.content == ("$Status"):
+        get_status = sheetstatus.batch_get(["A:C"], major_dimension="Columns")
+
+        send_string = "**Status**:"
+
+        x = 1
+
+        while x < len(get_status[0][0]):
+            send_string = send_string + "\n"
+            if get_status[0][2][x] == "0":
+                send_string = send_string + (get_status[0][1][x])
+
+            elif get_status[0][2][x] == "1":
+                tempstring = get_status[0][1][x]
+                tempstring = tempstring.replace("{Value}", get_status[0][0][x])
+                send_string = send_string + tempstring
+
+            x += 1
+
+        await message.channel.send(send_string)
+
+        return
+
+
     if message.content.startswith("$Update"):
 
         if str(message.author.top_role) != "Head Admin" and str(message.author.top_role) != "DM":
@@ -352,5 +383,6 @@ async def on_message(message):
         await message.channel.send(Result)
 
         return
+
 
 client.run(token)
