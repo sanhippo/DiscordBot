@@ -3,6 +3,7 @@ import discord
 import gspread
 import os
 import asyncio
+import socket
 from datetime import datetime, timezone
 
 gc = gspread.service_account()
@@ -26,6 +27,8 @@ else:
     sheetstatus = workbook.worksheet("Status")
 
 client = discord.Client()
+
+hostname = socket.gethostname()
 
 
 class Activity:  # Class for Activity Type Contains all the activity Information and is update on start and $Update Cmd
@@ -291,6 +294,25 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
     return outputstring
 
 
+def getRoll(roll):
+
+    dice = roll.split("d")
+
+    for x in range(len(dice)):
+        dice[x] = int(dice[x])
+
+
+    total = 0
+    roll_values = []
+
+    for x in range(dice[0]):
+        roll_values.append(random.randint(1, dice[1]))
+        print(roll_values[x])
+        total = total + roll_values[x]
+
+
+
+
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
@@ -306,83 +328,100 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith("$Test"):
-        await test(10)
-        return
+    command = message.content.split(" ")
+    command[0] = command[0].replace(command[0][1], command[0][1].upper())
 
 
-    if message.content == ("$Status"):
-        get_status = sheetstatus.batch_get(["A:C"], major_dimension="Columns")
 
-        send_string = "**Status**:"
+    if command[0].startswith("$"):
+        print(command[0])
 
-        x = 1
-
-        while x < len(get_status[0][0]):
-            send_string = send_string + "\n"
-            if get_status[0][2][x] == "0":
-                send_string = send_string + (get_status[0][1][x])
-
-            elif get_status[0][2][x] == "1":
-                tempstring = get_status[0][1][x]
-                tempstring = tempstring.replace("{Value}", get_status[0][0][x])
-                send_string = send_string + tempstring
-
-            x += 1
-
-        await message.channel.send(send_string)
-
-        return
-
-
-    if message.content.startswith("$Update"):
-
-        if str(message.author.top_role) != "Head Admin" and str(message.author.top_role) != "DM":
-            await message.channel.send("User does not have permission")
+        if command[0].startswith("$Test"):
+            await test(10)
             return
 
-        updatecategories()
-        if message.content.startswith("$Update 1"):
-            for x in range(len(ActivityList)):
-                messagetosend = f"Name: {ActivityList[x].name}"
-                await message.channel.send(messagetosend)
-
-        await message.channel.send(f"{message.author.mention}\n List Updated")
-        return
-
-    if message.content.startswith("$Exit"):
-
-        if str(message.author.top_role) != "Head Admin" and str(message.author.top_role) != "DM":
-            await message.channel.send("User does not have permission")
+        if command[0] == ("$Host"):
+            await message.channel.send(hostname)
             return
 
-        exit()
+        if command[0].startswith("$Roll"):
+            dice = message.content.split(" ")
 
-    if message.content.startswith("$"):
-
-        SelectedPlayer = GetPlayerIndex(message)
-
-        if SelectedPlayer == False:
-            await message.channel.send(f"{message.author.mention} {message.content}\n User {message.author.nick} Not Found!")
+            getRoll(dice[1])
             return
 
-        SelectedActivity = GetCategory(message)
+        if command[0] == ("$Status"):
+            get_status = sheetstatus.batch_get(["A:C"], major_dimension="Columns")
 
-        if not SelectedActivity:
-            await message.channel.send(f"{message.author.mention} {message.content}\n Activity {message.content} Not Found")
+            send_string = "**Status**:"
+
+            x = 1
+
+            while x < len(get_status[0][0]):
+                send_string = send_string + "\n"
+                if get_status[0][2][x] == "0":
+                    send_string = send_string + (get_status[0][1][x])
+
+                elif get_status[0][2][x] == "1":
+                    tempstring = get_status[0][1][x]
+                    tempstring = tempstring.replace("{Value}", get_status[0][0][x])
+                    send_string = send_string + tempstring
+
+                x += 1
+
+            await message.channel.send(send_string)
+
             return
 
-        IsValid = GetValid(message, SelectedPlayer, SelectedActivity)
 
-        if not IsValid[0]:
-            await message.channel.send(IsValid[1])
+        if command[0].startswith("$Update"):
+
+            if str(message.author.top_role) != "Head Admin" and str(message.author.top_role) != "DM":
+                await message.channel.send("User does not have permission")
+                return
+
+            updatecategories()
+            if message.content.startswith("$Update 1"):
+                for x in range(len(ActivityList)):
+                    messagetosend = f"Name: {ActivityList[x].name}"
+                    await message.channel.send(messagetosend)
+
+            await message.channel.send(f"{message.author.mention}\n List Updated")
             return
 
-        Result = GetResult(message, SelectedPlayer, SelectedActivity)
+        if command[0].startswith("$Exit"):
 
-        await message.channel.send(Result)
+            if str(message.author.top_role) != "Head Admin" and str(message.author.top_role) != "DM":
+                await message.channel.send("User does not have permission")
+                return
 
-        return
+            exit()
+
+        if command[0].startswith("$"):
+
+            SelectedPlayer = GetPlayerIndex(message)
+
+            if SelectedPlayer == False:
+                await message.channel.send(f"{message.author.mention} {message.content}\n User {message.author.nick} Not Found!")
+                return
+
+            SelectedActivity = GetCategory(message)
+
+            if not SelectedActivity:
+                await message.channel.send(f"{message.author.mention} {message.content}\n Activity {message.content} Not Found")
+                return
+
+            IsValid = GetValid(message, SelectedPlayer, SelectedActivity)
+
+            if not IsValid[0]:
+                await message.channel.send(IsValid[1])
+                return
+
+            Result = GetResult(message, SelectedPlayer, SelectedActivity)
+
+            await message.channel.send(Result)
+
+            return
 
 
 client.run(token)
