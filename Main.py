@@ -10,7 +10,7 @@ gc = gspread.service_account()
 
 workbook = gc.open("Elantris Downtime")
 
-Testing = 1
+Testing = os.environ.get('DiscordBotMode')
 
 if Testing == 0:
     token = os.environ.get('DiscordToken') # Actual Token
@@ -307,8 +307,9 @@ def getRoll(roll):
 
     for x in range(dice[0]):
         roll_values.append(random.randint(1, dice[1]))
-        print(roll_values[x])
         total = total + roll_values[x]
+
+    return total, roll_values
 
 
 
@@ -328,29 +329,33 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    command = message.content.split(" ")
-    command[0] = command[0].replace(command[0][1], command[0][1].upper())
 
 
 
-    if command[0].startswith("$"):
-        print(command[0])
+    if message.content.startswith("$"):
 
-        if command[0].startswith("$Test"):
-            await test(10)
+        message.content = message.content.replace(message.content[1], message.content[1].upper())
+
+        if message.content.startswith("$Test"):
+
             return
 
-        if command[0] == ("$Host"):
+
+        if message.content == ("$Host"):
             await message.channel.send(hostname)
             return
 
-        if command[0].startswith("$Roll"):
+        if message.content.startswith("$Roll"):
             dice = message.content.split(" ")
 
-            getRoll(dice[1])
+            results = getRoll(dice[1])
+
+            sendstring = f"{message.author.mention}\n Rolls: {results[1]}\n Total: {results[0]}"
+            await message.channel.send(sendstring)
+
             return
 
-        if command[0] == ("$Status"):
+        if message.content == ("$Status"):
             get_status = sheetstatus.batch_get(["A:C"], major_dimension="Columns")
 
             send_string = "**Status**:"
@@ -374,7 +379,7 @@ async def on_message(message):
             return
 
 
-        if command[0].startswith("$Update"):
+        if message.content.startswith("$Update"):
 
             if str(message.author.top_role) != "Head Admin" and str(message.author.top_role) != "DM":
                 await message.channel.send("User does not have permission")
@@ -389,7 +394,7 @@ async def on_message(message):
             await message.channel.send(f"{message.author.mention}\n List Updated")
             return
 
-        if command[0].startswith("$Exit"):
+        if message.content.startswith("$Exit"):
 
             if str(message.author.top_role) != "Head Admin" and str(message.author.top_role) != "DM":
                 await message.channel.send("User does not have permission")
@@ -397,7 +402,7 @@ async def on_message(message):
 
             exit()
 
-        if command[0].startswith("$"):
+        if message.content.startswith("$"):
 
             SelectedPlayer = GetPlayerIndex(message)
 
