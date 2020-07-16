@@ -6,6 +6,8 @@ import asyncio
 import socket
 from datetime import datetime, timezone
 
+catoffset = 2
+
 gc = gspread.service_account()
 
 workbook = gc.open("Elantris Downtime")
@@ -35,7 +37,7 @@ class Activity:  # Class for Activity Type Contains all the activity Information
 
     def __init__(self, name, column, style, expectedinputs, extrainfo, roll):
         self.name = name
-        self.column = column
+        self.column = column + catoffset
         self.style = style
         self.expectedinputs = expectedinputs
         self.extrainfo = extrainfo
@@ -74,7 +76,7 @@ def updatecategories():  # Updates the Activity List
     z = 0  # Sets to Row 0 for each new activity
 
     for x in range(1, len(get_values[0])):
-        ActivityList.append(Activity(get_values[0][x][0], x+1, get_values[0][x][1], int(get_values[0][x][2]), get_values[0][x][3], get_values[0][x][4]))
+        ActivityList.append(Activity(get_values[0][x][0], x, get_values[0][x][1], int(get_values[0][x][2]), get_values[0][x][3], get_values[0][x][4]))
 
         for y in range(5, len(get_values[0][1])):
             ActivityList[z].add_results(get_values[0][x][y])
@@ -113,9 +115,11 @@ def GetCategory(message):  # Determine Which Category Was Called
 def GetValid(message, SelectedPlayer, SelectedCategory):
     global MessageContentSplit
 
-    MessageContentSplit = message.content.replace(SelectedCategory.name, "").split(" ")
+    MessageContentSplit = message.content.split(" ")
+
 
     del MessageContentSplit[0]
+
 
     MessageLength = len(MessageContentSplit)
 
@@ -212,9 +216,10 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
         status_split[4] = int(status_split[4])  # 0 = max hours of day left
 
         if (SelectedActivity.style.find("c") != -1):
-            Value = round(status_split[3] * MessageContentSplit[1],2)
+
+            Value = round(status_split[3] * MessageContentSplit[1], 2)
         else:
-            Value = round(status_split[3],2)
+            Value = round(status_split[3], 2)
 
         totalroll.append(total)
 
@@ -270,7 +275,6 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
 
     outputstring = string_name_message + f"\n**Rolls:** {totalroll}  \n**Hours Used - Results:**"
 
-    # print(outputstring)
 
     for x in range(len(combined_results)):
         combined_results[x].description = combined_results[x].description.replace("{Value}", str(combined_results[x].value))
@@ -334,7 +338,7 @@ async def on_message(message):
 
     if message.content.startswith("$"):
 
-        message.content = message.content.replace(message.content[1], message.content[1].upper())
+        message.content = message.content[:1] + message.content[1].upper() + message.content[2:]
 
         if message.content.startswith("$Test"):
 
