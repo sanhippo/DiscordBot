@@ -278,7 +278,6 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
     for x in range(len(combined_results)):
         combined_results[x].value = round(combined_results[x].value)
 
-
     msgesttime = utc_to_local(message.created_at)
 
     sheetdata[0] = (str(msgesttime.date()))  # Date
