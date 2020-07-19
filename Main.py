@@ -265,7 +265,7 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
 
                 if rolls[x].type == combined_results[y].type:
                     matchfound = 1
-                    combined_results[y].value = round(combined_results[y].value + rolls[x].value)
+                    combined_results[y].value = combined_results[y].value + rolls[x].value
                     combined_results[y].hoursused = combined_results[y].hoursused + rolls[x].hoursused
                     combined_results[y].amountconsumed = combined_results[y].amountconsumed + rolls[x].amountconsumed
                     combined_results[y].daysinjured = combined_results[y].daysinjured + rolls[x].daysinjured
@@ -274,6 +274,9 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
 
             if matchfound == 0:
                 combined_results.append(rolls[x])
+
+    for x in range(len(combined_results)):
+        combined_results[x].value = round(combined_results[x].value)
 
 
     msgesttime = utc_to_local(message.created_at)
