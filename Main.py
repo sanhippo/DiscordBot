@@ -4,6 +4,7 @@ import gspread
 import os
 import asyncio
 import socket
+import credentials
 from datetime import datetime, timezone
 
 catoffset = 3
@@ -12,16 +13,17 @@ gc = gspread.service_account()
 
 workbook = gc.open("Elantris Downtime")
 
-Testing = os.environ.get('DiscordBotMode')
+Testing = credentials.Testing
 
 if Testing == 0:
-    token = os.environ.get('DiscordToken') # Actual Token
+    token = credentials.BotToken # Actual Token
     sheetactivites = workbook.worksheet("Downtime")
     sheetlog = workbook.worksheet("Log")
     sheetplayerinfo = workbook.worksheet("Player")
     sheetinfo = workbook.worksheet("Info")
+
 else:
-    token = os.environ.get('DiscordTokenTest')  # Test Token
+    token = credentials.TestToken  # Test Token
     sheetactivites = workbook.worksheet("DowntimeTest")
     sheetlog = workbook.worksheet("LogTest")
     sheetplayerinfo = workbook.worksheet("PlayerTest")
