@@ -76,6 +76,16 @@ class Player:
 
 
 
+class Player:
+
+    def __init__(self, name, hoursused, maxhours, injury, activityvalue):
+        self.name = name
+        self.hoursused = hoursused
+        self.maxhours = maxhours
+        self.injury = injury
+        self.activityvalue = activityvalue
+        self.hoursleft = maxhours - hoursused
+
 
 def utc_to_local(utc_dt):  # Convert UTC Time from Discord to EDT Time for use in the google sheet
     return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
@@ -331,6 +341,13 @@ def getRoll(roll):
     return total, roll_values
 
 
+def auth_and_chan(ctx):
+    """Message check: same author and channel"""
+
+    def chk(msg):
+        return msg.author == msg.author and msg.channel == msg.channel
+
+    return chk
 
 
 @client.event
@@ -354,6 +371,14 @@ async def on_message(message):
         message.content = message.content[:1] + message.content[1].upper() + message.content[2:]
 
         if message.content.startswith("$Test"):
+
+            await message.channel.send("Please Select From Options:")
+            try:
+                reply = await client.wait_for('message', timeout=30, check=lambda m: auth_and_chan(message)(m))
+                if (not reply) or (not reply.content == "Yes, I am sure"):
+                    await message.channel.send("Unconfirmed. Aborting.")
+            except asyncio.TimeoutError:
+                await message.channel.send("Unconfirmed. Aborting.")
 
             return
 
