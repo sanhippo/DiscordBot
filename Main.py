@@ -75,19 +75,6 @@ class Player:
         self.hoursleft = self.maxhours - self.hoursused
 
 
-
-
-class Player:
-
-    def __init__(self, name, hoursused, maxhours, injury, activityvalue):
-        self.name = name
-        self.hoursused = hoursused
-        self.maxhours = maxhours
-        self.injury = injury
-        self.activityvalue = activityvalue
-        self.hoursleft = maxhours - hoursused
-
-
 def utc_to_local(utc_dt):  # Convert UTC Time from Discord to EDT Time for use in the google sheet
     return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
@@ -224,12 +211,6 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
     rolls = []
     totalroll = []
 
-
-async def townstatus():
-    get_status = sheetstatus.batch_get(["A:C"], major_dimension="Columns")
-
-    send_string = ""
-
     for x in range(len(dice)):
         dice[x] = int(dice[x])
 
@@ -353,6 +334,10 @@ def auth_and_chan(ctx):
 
     return chk
 
+async def townstatus():
+    get_status = sheetstatus.batch_get(["A:C"], major_dimension="Columns")
+
+    send_string = ""
     x = 1
 
     while x < len(get_status[0][0]):
