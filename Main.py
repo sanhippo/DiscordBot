@@ -162,9 +162,9 @@ async def GetValid(message, SelectedPlayer, SelectedCategory):
 
         workamount = SelectedPlayer.activityvalue * MessageContentSplit[0]
 
-        f = SelectedCategory.style.find("c")
-
-        in_stock = float(sheetinfo.acell(SelectedCategory.extrainfo[f+2:f+4]).value)
+        fstart = SelectedCategory.extrainfo.find("c,")
+        fend = SelectedCategory.extrainfo.find(":", fstart)
+        in_stock = float(sheetinfo.acell(SelectedCategory.extrainfo[fstart+2:fend]).value)
 
         if workamount > in_stock:
             MessageContentSplit[0] = math.floor(in_stock / SelectedPlayer.activityvalue)
