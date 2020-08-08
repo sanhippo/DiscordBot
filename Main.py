@@ -5,7 +5,8 @@ import asyncio
 import socket
 import credentials
 import math
-from datetime import datetime, timezone
+import datetime
+
 
 catoffset = 3
 
@@ -16,12 +17,14 @@ workbook = gc.open("Elantris Downtime")
 Testing = credentials.Testing
 
 if Testing == 0:
-    token = credentials.BotToken # Actual Token
+    token = credentials.BotToken  # Actual Token
     sheetactivites = workbook.worksheet("Downtime")
     sheetlog = workbook.worksheet("Log")
     sheetplayerinfo = workbook.worksheet("Player")
     sheetinfo = workbook.worksheet("Info")
     sheetstatus = workbook.worksheet("Status")
+    statusidchan = 741786416773595238
+    messageid = 741796531467845793
 
 else:
     token = credentials.TestToken  # Test Token
@@ -30,6 +33,8 @@ else:
     sheetplayerinfo = workbook.worksheet("PlayerTest")
     sheetinfo = workbook.worksheet("Info")
     sheetstatus = workbook.worksheet("Status")
+    statusidchan = 707666480271065148
+    messageid = 741791859260522556
 
 client = discord.Client()
 
@@ -61,8 +66,10 @@ class RollResults:
         self.hoursused = hoursused
         self.amountconsumed = amountconsumed
         self.daysinjured = daysinjured
+        self.val2 = 0
 
-
+    def add_val(self, addvalue):
+        self.val2 = addvalue
 
 class Player:
 
@@ -76,7 +83,7 @@ class Player:
 
 
 def utc_to_local(utc_dt):  # Convert UTC Time from Discord to EDT Time for use in the google sheet
-    return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)
+    return utc_dt.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
 
 
 def updatecategories():  # Updates the Activity List
@@ -84,7 +91,7 @@ def updatecategories():  # Updates the Activity List
     global ActivityList
     ActivityList = []  # Clears out the Activity List
 
-    get_values = sheetactivites.batch_get(["A:ZZ"],major_dimension="Columns")  # Gets all the Google Sheet Information Based on Columns
+    get_values = sheetactivites.batch_get(["A:ZZ"], major_dimension="Columns")  # Gets all the Google Sheet Information Based on Columns
 
     z = 0  # Sets to Row 0 for each new activity
 
@@ -162,9 +169,9 @@ async def GetValid(message, SelectedPlayer, SelectedCategory):
 
         workamount = SelectedPlayer.activityvalue * MessageContentSplit[0]
 
-        fstart = SelectedCategory.extrainfo.find("c,")
-        fend = SelectedCategory.extrainfo.find(":", fstart)
-        in_stock = float(sheetinfo.acell(SelectedCategory.extrainfo[fstart+2:fend]).value)
+        fstart = SelectedCategory.style.find("c,")
+        fend = SelectedCategory.style.find(":", fstart)
+        in_stock = float(sheetinfo.acell(SelectedCategory.extrainfo[fstart+3:fend]).value)
 
         if workamount > in_stock:
             MessageContentSplit[0] = math.floor(in_stock / SelectedPlayer.activityvalue)
@@ -232,19 +239,25 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
 
         status_split[1] = int(status_split[1])  # Type Number Increment for each new item combo
         status_split[2] = int(status_split[2])  # 0 = No Log, 1 = Log
-        status_split[3] = float(status_split[3])  # Value
+        if (SelectedActivity.style.find("d") != -1):
+            value_split = status_split[3].split(",")
+            status_split[3] = float(value_split[0])
+        else:
+            status_split[3] = float(status_split[3])  # Value
         status_split[4] = int(status_split[4])  # 0 = max hours of day left
 
         if status_split[4] != 0:
             daysinjured = status_split[4]
 
         if (SelectedActivity.style.find("c") != -1):
-
             value = status_split[3] * SelectedPlayer.activityvalue
             rolls.append(RollResults(status_split[0], status_split[1], status_split[2], value, 1, SelectedPlayer.activityvalue, daysinjured))
         else:
             value = status_split[3]
             rolls.append(RollResults(status_split[0], status_split[1], status_split[2], value, 1, 0, daysinjured))
+
+        if (SelectedActivity.style.find("d") != -1):
+            rolls[t].add_val(float(value_split[1]))
 
         if daysinjured != 0:
             break
@@ -266,6 +279,7 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
                     combined_results[y].hoursused = combined_results[y].hoursused + rolls[x].hoursused
                     combined_results[y].amountconsumed = combined_results[y].amountconsumed + rolls[x].amountconsumed
                     combined_results[y].daysinjured = combined_results[y].daysinjured + rolls[x].daysinjured
+                    combined_results[y].val2 = combined_results[y].val2 + rolls[x].val2
 
                     break
 
@@ -274,6 +288,7 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
 
     for x in range(len(combined_results)):
         combined_results[x].value = round(combined_results[x].value)
+        combined_results[x].val2 = round(combined_results[x].val2)
 
     msgesttime = utc_to_local(message.created_at)
 
@@ -294,6 +309,10 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
             sheetdata[6] = combined_results[x].amountconsumed  # Quantity used
         else:
             sheetdata[6] = 0
+
+        if (SelectedActivity.style.find("d") != -1):
+            combined_results[x].description = combined_results[x].description.replace("{2}",
+                                                                                      str(combined_results[x].val2))
 
         outputstring = outputstring + f"\n **[{combined_results[x].hoursused}] - ** {combined_results[x].description}"
         sheetdata[3] = combined_results[x].description  # what
@@ -330,7 +349,7 @@ def auth_and_chan(ctx):
     """Message check: same author and channel"""
 
     def chk(msg):
-        return msg.author == msg.author and msg.channel == msg.channel
+        return ctx.author == msg.author and ctx.channel == msg.channel
 
     return chk
 
@@ -363,10 +382,106 @@ async def printdiscord(ctx, string):
 
 global ActivityList
 
+
+async def waittime(seconds):
+
+    while seconds > 86400:
+
+        await asyncio.sleep(86400)
+        seconds = seconds - 86400
+
+    await asyncio.sleep(seconds)
+
+    return
+
+
+async def extracommands(ctx):
+
+    if ctx.content == ("$Host"):
+        await ctx.channel.send(hostname)
+        return 1
+
+    if ctx.content.startswith("$Update"):
+
+        if not (await check_cred(ctx)):
+            return 1
+
+        updatecategories()
+
+        if ctx.content.startswith("$Update 1"):
+            for x in range(len(ActivityList)):
+                messagetosend = f"Name: {ActivityList[x].name}"
+                await ctx.channel.send(messagetosend)
+
+        await ctx.channel.send(f"{ctx.author.mention}\n List Updated")
+        return 1
+
+    if ctx.content.startswith("$Exit"):
+
+        if not (await check_cred(ctx)):
+            return 1
+
+        exit()
+
+    if ctx.content == ("$SupplyUpdater"):
+        await SupplyUpdater(ctx)
+        return 1
+
+    if ctx.content.startswith("$Roll"):
+        dice = ctx.content.split(" ")
+
+        results = getRoll(dice[1])
+
+        sendstring = f"{ctx.author.mention}\n Rolls: {results[1]}\n Total: {results[0]}"
+        await ctx.channel.send(sendstring)
+
+        return 1
+
+    if ctx.content == ("$Status"):
+        await printdiscord(ctx, await townstatus())
+
+        return 1
+
+    return 0
+
+
+async def check_cred(ctx):
+    if str(ctx.author.top_role) != "Head Admin" and str(ctx.author.top_role) != "DM":
+        await ctx.channel.send("User does not have permission")
+        return 0
+    return 1
+
+async def SupplyUpdater(ctx):
+    global running
+
+    if not (await check_cred(ctx)):
+        return
+
+    if running == 0:
+        await ctx.channel.send("Running Wait Task")
+        channelstatus = client.get_channel(statusidchan)
+        editmessage = await channelstatus.fetch_message(messageid)
+        await editmessage.edit(content=(await townstatus()))
+        running = 1
+    else:
+        await ctx.channel.send("Running Wait Task Ended")
+        running = 0
+
+    while running == 1:
+        await waittime(3600)
+        await editmessage.edit(content=(await townstatus()))
+
+    return
+
+
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
+    global running
+    running = 0
     updatecategories()
+
+
 
 @client.event
 async def on_message(message):
@@ -375,17 +490,21 @@ async def on_message(message):
         return
 
     if message.content.startswith("$"):
-
         message.content = message.content[:1] + message.content[1].upper() + message.content[2:]
         ctx = message
 
-        message.content = message.content[:1] + message.content[1].upper() + message.content[2:]
+        if await extracommands(ctx):
+            return
 
         if message.content.startswith("$Test"):
+            ctx = message
+
+            if not (await check_cred(ctx)):
+                return
 
             await message.channel.send("Please Select From Options:")
             try:
-                reply = await client.wait_for('message', timeout=30, check=lambda m: auth_and_chan(message)(m))
+                reply = await client.wait_for('message', timeout=30, check=lambda m: auth_and_chan(ctx)(m))
                 if (not reply) or (not reply.content == "Yes, I am sure"):
                     await message.channel.send("Unconfirmed. Aborting.")
             except asyncio.TimeoutError:
@@ -404,50 +523,6 @@ async def on_message(message):
                 print('timeout!')
 
             return
-
-        if message.content == ("$Host"):
-            await message.channel.send(hostname)
-            return
-
-        if message.content.startswith("$Roll"):
-            dice = message.content.split(" ")
-
-            results = getRoll(dice[1])
-
-            sendstring = f"{message.author.mention}\n Rolls: {results[1]}\n Total: {results[0]}"
-            await message.channel.send(sendstring)
-
-            return
-
-        if message.content == ("$Status"):
-
-            await printdiscord(ctx, await townstatus())
-
-            return
-
-
-        if message.content.startswith("$Update"):
-
-            if str(message.author.top_role) != "Head Admin" and str(message.author.top_role) != "DM":
-                await message.channel.send("User does not have permission")
-                return
-
-            updatecategories()
-            if message.content.startswith("$Update 1"):
-                for x in range(len(ActivityList)):
-                    messagetosend = f"Name: {ActivityList[x].name}"
-                    await message.channel.send(messagetosend)
-
-            await message.channel.send(f"{message.author.mention}\n List Updated")
-            return
-
-        if message.content.startswith("$Exit"):
-
-            if str(message.author.top_role) != "Head Admin" and str(message.author.top_role) != "DM":
-                await message.channel.send("User does not have permission")
-                return
-
-            exit()
 
         if message.content.startswith("$"):
 
