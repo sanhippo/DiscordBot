@@ -9,6 +9,8 @@ import datetime
 
 
 catoffset = 3
+global running
+running = 0
 
 gc = gspread.service_account()
 
@@ -29,7 +31,7 @@ if Testing == 0:
 else:
     token = credentials.TestToken  # Test Token
     sheetactivites = workbook.worksheet("DowntimeTest")
-    sheetlog = workbook.worksheet("LogTest")
+    sheetlog = workbook.worksheet("Log")
     sheetplayerinfo = workbook.worksheet("PlayerTest")
     sheetinfo = workbook.worksheet("Info")
     sheetstatus = workbook.worksheet("Status")
@@ -199,7 +201,7 @@ def RepresentsInt(s):
     return True
 
 
-def GetResult(message, SelectedPlayer, SelectedActivity):
+async def GetResult(message, SelectedPlayer, SelectedActivity):
 
     string_name_message = f"{message.author.mention} {message.content}\n"
     dice = SelectedActivity.roll.split("d")
@@ -315,14 +317,38 @@ def GetResult(message, SelectedPlayer, SelectedActivity):
                                                                                       str(combined_results[x].val2))
 
         outputstring = outputstring + f"\n **[{combined_results[x].hoursused}] - ** {combined_results[x].description}"
+
         sheetdata[3] = combined_results[x].description  # what
         sheetdata[4] = combined_results[x].log  # log
         sheetdata[5] = combined_results[x].value  # Value
         sheetdata[7] = combined_results[x].hoursused  # hours used
         sheetdata[9] = combined_results[x].daysinjured
 
-        sheetlog.append_row(sheetdata, value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS",
-                            table_range="A1")
+        if (SelectedActivity.style.find("g") != -1):
+            async with message.channel.typing():
+                fstart = SelectedActivity.extrainfo.find("g,")
+                fend = SelectedActivity.extrainfo.find(";", fstart)
+                fstring = SelectedActivity.extrainfo[fstart+2:fend]
+                fsplit = fstring.split("|")
+                fbegin = (sheetinfo.acell(fsplit[0]).value)
+                sheetlog.append_row(sheetdata, value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS",
+                                    table_range="A1")
+                x = 0
+                while x < 15:
+                    fcurrent = (sheetinfo.acell(fsplit[0]).value)
+                    if fcurrent == fbegin:
+                        await asyncio.sleep(1)
+                        x += 1
+                    else:
+                        break
+
+            fsplit[1] = fsplit[1].replace("{Value}", fcurrent)
+            outputstring = outputstring + "\n" + fsplit[1]
+        else:
+            sheetlog.append_row(sheetdata, value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS",
+                                table_range="A1")
+
+
 
     return outputstring
 
@@ -458,11 +484,11 @@ async def SupplyUpdater(ctx):
         return
 
     if running == 0:
+        running = 1
         await ctx.channel.send("Running Wait Task")
         channelstatus = client.get_channel(statusidchan)
         editmessage = await channelstatus.fetch_message(messageid)
         await editmessage.edit(content=(await townstatus()))
-        running = 1
     else:
         await ctx.channel.send("Running Wait Task Ended")
         running = 0
@@ -477,8 +503,6 @@ async def SupplyUpdater(ctx):
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
-    global running
-    running = 0
     updatecategories()
 
 
@@ -545,7 +569,7 @@ async def on_message(message):
                 await message.channel.send(IsValid[1])
                 return
 
-            Result = GetResult(message, SelectedPlayer, SelectedActivity)
+            Result = await GetResult(message, SelectedPlayer, SelectedActivity)
 
             await message.channel.send(Result)
 
