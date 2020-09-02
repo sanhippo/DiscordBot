@@ -518,6 +518,7 @@ async def on_message(message):
         ctx = message
 
         if await extracommands(ctx):
+
             return
 
         if message.content.startswith("$Test"):
