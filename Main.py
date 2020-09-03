@@ -7,7 +7,6 @@ import credentials
 import math
 import datetime
 
-
 catoffset = 3
 global running
 running = 0
@@ -17,6 +16,7 @@ gc = gspread.service_account()
 workbook = gc.open("Elantris Downtime")
 
 Testing = credentials.Testing
+
 
 if Testing == 0:
     token = credentials.BotToken  # Actual Token
@@ -35,13 +35,10 @@ else:
     sheetplayerinfo = workbook.worksheet("PlayerTest")
     sheetinfo = workbook.worksheet("Info")
     sheetstatus = workbook.worksheet("Status")
-    statusidchan = 707666480271065148
-    messageid = 741791859260522556
 
 client = discord.Client()
 
 hostname = socket.gethostname()
-
 
 class Activity:  # Class for Activity Type Contains all the activity Information and is update on start and $Update Cmd
 
@@ -72,6 +69,7 @@ class RollResults:
 
     def add_val(self, addvalue):
         self.val2 = addvalue
+
 
 class Player:
 
@@ -138,11 +136,9 @@ async def GetValid(message, SelectedPlayer, SelectedCategory):
 
     MessageContentSplit = message.content.split(" ")
 
-
     del MessageContentSplit[0]
 
     for x in range(len(SelectedCategory.expectedinputs)):
-
 
         if len(SelectedCategory.expectedinputs) != len(MessageContentSplit):
 
@@ -166,7 +162,6 @@ async def GetValid(message, SelectedPlayer, SelectedCategory):
     if SelectedPlayer.activityvalue == 0:
         return False, f"{message.author.mention} {message.content}\n Character Does Not Meet Requirements" # Character Does Not Meet Activity Requirements
 
-
     if (SelectedCategory.style.find("c") != -1):
 
         workamount = SelectedPlayer.activityvalue * MessageContentSplit[0]
@@ -187,7 +182,6 @@ async def GetValid(message, SelectedPlayer, SelectedCategory):
     if SelectedPlayer.injury != 0:
         if (SelectedCategory.style.find("i") == -1):
             return False, f"{message.author.mention} {message.content}\nInjured For {SelectedPlayer.injury} days. Can't Perform Selected Activity" # To Large of a Number Entered For Use
-
 
     return True, 0  # Return True For is a Valid Case
 
@@ -348,8 +342,6 @@ async def GetResult(message, SelectedPlayer, SelectedActivity):
             sheetlog.append_row(sheetdata, value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS",
                                 table_range="A1")
 
-
-
     return outputstring
 
 
@@ -359,7 +351,6 @@ def getRoll(roll):
 
     for x in range(len(dice)):
         dice[x] = int(dice[x])
-
 
     total = 0
     roll_values = []
@@ -378,6 +369,7 @@ def auth_and_chan(ctx):
         return ctx.author == msg.author and ctx.channel == msg.channel
 
     return chk
+
 
 async def townstatus():
     get_status = sheetstatus.batch_get(["A:C"], major_dimension="Columns")
@@ -424,12 +416,26 @@ async def waittime(seconds):
 async def extracommands(ctx):
 
     if ctx.content == ("$Host"):
-        await ctx.channel.send(hostname)
+        if not (await check_cred(ctx, "Developer")):
+            return 1
+        await ctx.author.send(hostname)
+        return 1
+
+    if ctx.content.startswith("$Emote"):
+
+        if not (await check_cred(ctx, "DM")):
+            return 1
+        await ctx.delete()
+        fstart = ctx.content.find("[")
+        fend = ctx.content.find("]", fstart)
+        name = ctx.content[fstart + 1:fend]
+        txt = ctx.content[fend + 2:]
+        fstring = f"__**{name}**__ ```bash\n \"{txt}\" ```"
+        await ctx.channel.send(fstring)
         return 1
 
     if ctx.content.startswith("$Update"):
-
-        if not (await check_cred(ctx)):
+        if not (await check_cred(ctx, "Developer")):
             return 1
 
         updatecategories()
@@ -443,13 +449,14 @@ async def extracommands(ctx):
         return 1
 
     if ctx.content.startswith("$Exit"):
-
-        if not (await check_cred(ctx)):
+        if not (await check_cred(ctx, "Developer")):
             return 1
 
         exit()
 
     if ctx.content == ("$SupplyUpdater"):
+        if not (await check_cred(ctx, "Developer")):
+            return 1
         await SupplyUpdater(ctx)
         return 1
 
@@ -464,23 +471,27 @@ async def extracommands(ctx):
         return 1
 
     if ctx.content == ("$Status"):
-        await printdiscord(ctx, await townstatus())
-
+        await ctx.delete()
+        tstatus = await townstatus()
+        await ctx.author.send(tstatus)
         return 1
 
     return 0
 
 
-async def check_cred(ctx):
-    if str(ctx.author.top_role) != "Head Admin" and str(ctx.author.top_role) != "DM":
-        await ctx.channel.send("User does not have permission")
-        return 0
-    return 1
+async def check_cred(ctx, role):
+    """Message check: Check To See if User has Correct Role"""
+    for x in ctx.author.roles:
+        if str(x) == role:
+            return 1
+    await ctx.author.send(f"You need the role {role} for this function.")
+    return 0
+
 
 async def SupplyUpdater(ctx):
     global running
 
-    if not (await check_cred(ctx)):
+    if not (await check_cred(ctx, "Developer")):
         return
 
     if running == 0:
@@ -499,12 +510,11 @@ async def SupplyUpdater(ctx):
 
     return
 
+updatecategories()
 
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
-    updatecategories()
-
 
 
 @client.event
@@ -518,13 +528,12 @@ async def on_message(message):
         ctx = message
 
         if await extracommands(ctx):
-
             return
 
         if message.content.startswith("$Test"):
             ctx = message
 
-            if not (await check_cred(ctx)):
+            if not (await check_cred(ctx, "Developer")):
                 return
 
             await message.channel.send("Please Select From Options:")
