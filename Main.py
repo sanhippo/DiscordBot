@@ -369,6 +369,7 @@ def auth_and_chan(ctx):
     def chk(msg):
         return ctx.author == msg.author and ctx.channel == msg.channel
 
+
     return chk
 
 
