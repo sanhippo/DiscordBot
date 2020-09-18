@@ -6,6 +6,7 @@ import socket
 import credentials
 import math
 import datetime
+import functions
 
 catoffset = 3
 global running
@@ -430,7 +431,7 @@ async def extracommands(ctx):
         fend = ctx.content.find("]", fstart)
         name = ctx.content[fstart + 1:fend]
         txt = ctx.content[fend + 2:]
-        fstring = f"__**{name}**__ ```bash\n \"{txt}\" ```"
+        fstring = f"__**{name}**__ ```yaml\n {txt} ```"
         await ctx.channel.send(fstring)
         return 1
 
@@ -530,31 +531,44 @@ async def on_message(message):
         if await extracommands(ctx):
             return
 
+        if message.content.startswith("$Trial1"):
+            await functions.confirm(ctx, "Confrim with a y")
+            return
+
+
         if message.content.startswith("$Test"):
-            ctx = message
 
             if not (await check_cred(ctx, "Developer")):
                 return
 
-            await message.channel.send("Please Select From Options:")
-            try:
-                reply = await client.wait_for('message', timeout=30, check=lambda m: auth_and_chan(ctx)(m))
-                if (not reply) or (not reply.content == "Yes, I am sure"):
+            send_string = "Please Select From Options: "
+            x = 1
+            DataGet = sheetstatus.batch_get(["L:Q"], major_dimension="Columns")
+
+            inputsplit = ctx.content.split(" ")
+
+            if len(inputsplit) > 2:
+                selectedinput = int(inputsplit[2])
+
+            else:
+
+                while x < len(DataGet[0][1]):
+                    if DataGet[0][0][x] == "1":
+                        send_string = send_string + "\n" + str(x) + ": " + DataGet[0][1][x]
+
+                    x = x + 1
+
+                await message.channel.send(send_string)
+
+                try:
+                    reply = await client.wait_for('message', timeout=30, check=lambda m: auth_and_chan(ctx)(m))
+                    selectedinput = int(reply.content)
+                    if (not reply) or (not (2 <= selectedinput <= x-1)):
+                        await message.channel.send("Not an Input Selected")
+                except asyncio.TimeoutError:
                     await message.channel.send("Unconfirmed. Aborting.")
-            except asyncio.TimeoutError:
-                await message.channel.send("Unconfirmed. Aborting.")
 
-            channel = message.channel
-
-            await channel.send("Say Hello!")
-
-            def check(m):
-                return m.content == 'hello' and m.channel == channel
-
-            try:
-                await asyncio.wait_for(check(message), timeout=5.0)
-            except asyncio.TimeoutError:
-                print('timeout!')
+            await message.channel.send(f"You Selected: {DataGet[0][1][selectedinput]}")
 
             return
 
