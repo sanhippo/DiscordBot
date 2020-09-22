@@ -18,7 +18,6 @@ workbook = gc.open("Elantris Downtime")
 
 Testing = credentials.Testing
 
-
 if Testing == 0:
     token = credentials.BotToken  # Actual Token
     sheetactivites = workbook.worksheet("Downtime")
@@ -33,13 +32,14 @@ else:
     token = credentials.TestToken  # Test Token
     sheetactivites = workbook.worksheet("DowntimeTest")
     sheetlog = workbook.worksheet("Log")
-    sheetplayerinfo = workbook.worksheet("PlayerTest")
+    sheetplayerinfo = workbook.worksheet("Player")
     sheetinfo = workbook.worksheet("Info")
     sheetstatus = workbook.worksheet("Status")
 
-client = discord.Client()
+bot = discord.Client()
 
 hostname = socket.gethostname()
+
 
 class Activity:  # Class for Activity Type Contains all the activity Information and is update on start and $Update Cmd
 
@@ -92,12 +92,15 @@ def updatecategories():  # Updates the Activity List
     global ActivityList
     ActivityList = []  # Clears out the Activity List
 
-    get_values = sheetactivites.batch_get(["A:ZZ"], major_dimension="Columns")  # Gets all the Google Sheet Information Based on Columns
+    get_values = sheetactivites.batch_get(["A:ZZ"],
+                                          major_dimension="Columns")  # Gets all the Google Sheet Information Based on Columns
 
     z = 0  # Sets to Row 0 for each new activity
 
     for x in range(1, len(get_values[0])):
-        ActivityList.append(Activity(get_values[0][x][0], x, get_values[0][x][1], get_values[0][x][2], get_values[0][x][3], get_values[0][x][4]))
+        ActivityList.append(
+            Activity(get_values[0][x][0], x, get_values[0][x][1], get_values[0][x][2], get_values[0][x][3],
+                     get_values[0][x][4]))
 
         for y in range(5, len(get_values[0][1])):
             ActivityList[z].add_results(get_values[0][x][y])
@@ -107,14 +110,15 @@ def updatecategories():  # Updates the Activity List
     return
 
 
-def GetPlayerIndex(message, collumn):  # Determine What Player Is Making the Request Updates every request to get new data
+def GetPlayerIndex(message,
+                   collumn):  # Determine What Player Is Making the Request Updates every request to get new data
 
     PlayerList = sheetplayerinfo.col_values(1)  # Get Player Data
 
     for x in range(len(PlayerList)):
 
         if message.author.nick == PlayerList[x]:  # If Player Found report the value
-            sheetvalues = sheetplayerinfo.row_values(x+1)
+            sheetvalues = sheetplayerinfo.row_values(x + 1)
 
             player = Player(sheetvalues[0], sheetvalues[1], sheetvalues[2], sheetvalues[3], sheetvalues[collumn])
 
@@ -142,7 +146,6 @@ async def GetValid(message, SelectedPlayer, SelectedCategory):
     for x in range(len(SelectedCategory.expectedinputs)):
 
         if len(SelectedCategory.expectedinputs) != len(MessageContentSplit):
-
             return False, f"{message.author.mention} {message.content}\n Invalid Number of Parameters. {len(SelectedCategory.expectedinputs)} Expected."
 
         if SelectedCategory.expectedinputs[x].upper() == "I":
@@ -153,15 +156,14 @@ async def GetValid(message, SelectedPlayer, SelectedCategory):
         if SelectedCategory.expectedinputs[x].upper() == "S":
             MessageContentSplit[x] = MessageContentSplit[x].upper()
 
-
     if ((MessageContentSplit[0] > SelectedPlayer.maxhours) or (MessageContentSplit[0] <= 0)):
-        return False, f"{message.author.mention} {message.content}\n Invalid Hour Entry, Must Be Between 1 and {SelectedPlayer.hoursleft}"    # Invalid Hour Entry
+        return False, f"{message.author.mention} {message.content}\n Invalid Hour Entry, Must Be Between 1 and {SelectedPlayer.hoursleft}"  # Invalid Hour Entry
 
     if MessageContentSplit[0] > SelectedPlayer.hoursleft:
-        return False, f"{message.author.mention} {message.content}\n Not Enough Hours Left In Day, Hours Left: {SelectedPlayer.hoursleft}" # Not Enough Hours Left In the Day
+        return False, f"{message.author.mention} {message.content}\n Not Enough Hours Left In Day, Hours Left: {SelectedPlayer.hoursleft}"  # Not Enough Hours Left In the Day
 
     if SelectedPlayer.activityvalue == 0:
-        return False, f"{message.author.mention} {message.content}\n Character Does Not Meet Requirements" # Character Does Not Meet Activity Requirements
+        return False, f"{message.author.mention} {message.content}\n Character Does Not Meet Requirements"  # Character Does Not Meet Activity Requirements
 
     if (SelectedCategory.style.find("c") != -1):
 
@@ -169,7 +171,7 @@ async def GetValid(message, SelectedPlayer, SelectedCategory):
 
         fstart = SelectedCategory.style.find("c,")
         fend = SelectedCategory.style.find(":", fstart)
-        in_stock = float(sheetinfo.acell(SelectedCategory.extrainfo[fstart+3:fend]).value)
+        in_stock = float(sheetinfo.acell(SelectedCategory.extrainfo[fstart + 3:fend]).value)
 
         if workamount > in_stock:
             MessageContentSplit[0] = math.floor(in_stock / SelectedPlayer.activityvalue)
@@ -182,7 +184,7 @@ async def GetValid(message, SelectedPlayer, SelectedCategory):
 
     if SelectedPlayer.injury != 0:
         if (SelectedCategory.style.find("i") == -1):
-            return False, f"{message.author.mention} {message.content}\nInjured For {SelectedPlayer.injury} days. Can't Perform Selected Activity" # To Large of a Number Entered For Use
+            return False, f"{message.author.mention} {message.content}\nInjured For {SelectedPlayer.injury} days. Can't Perform Selected Activity"  # To Large of a Number Entered For Use
 
     return True, 0  # Return True For is a Valid Case
 
@@ -197,7 +199,6 @@ def RepresentsInt(s):
 
 
 async def GetResult(message, SelectedPlayer, SelectedActivity):
-
     string_name_message = f"{message.author.mention} {message.content}\n"
     dice = SelectedActivity.roll.split("d")
     hoursleft = SelectedPlayer.hoursleft
@@ -230,7 +231,7 @@ async def GetResult(message, SelectedPlayer, SelectedActivity):
 
         totalroll.append(total)
 
-        sdescription = SelectedActivity.results[total-1]
+        sdescription = SelectedActivity.results[total - 1]
 
         status_split = sdescription.split(":")
 
@@ -248,7 +249,9 @@ async def GetResult(message, SelectedPlayer, SelectedActivity):
 
         if (SelectedActivity.style.find("c") != -1):
             value = status_split[3] * SelectedPlayer.activityvalue
-            rolls.append(RollResults(status_split[0], status_split[1], status_split[2], value, 1, SelectedPlayer.activityvalue, daysinjured))
+            rolls.append(
+                RollResults(status_split[0], status_split[1], status_split[2], value, 1, SelectedPlayer.activityvalue,
+                            daysinjured))
         else:
             value = status_split[3]
             rolls.append(RollResults(status_split[0], status_split[1], status_split[2], value, 1, 0, daysinjured))
@@ -296,13 +299,14 @@ async def GetResult(message, SelectedPlayer, SelectedActivity):
 
     outputstring = string_name_message + f"\n**Rolls:** {totalroll}  \n**Hours Used - Results:**"
 
-
     for x in range(len(combined_results)):
-        combined_results[x].description = combined_results[x].description.replace("{Value}", str(combined_results[x].value))
+        combined_results[x].description = combined_results[x].description.replace("{Value}",
+                                                                                  str(combined_results[x].value))
 
         if (SelectedActivity.style.find("c") != -1):
 
-            combined_results[x].description = combined_results[x].description.replace("{Consumed}", str(combined_results[x].amountconsumed))
+            combined_results[x].description = combined_results[x].description.replace("{Consumed}", str(
+                combined_results[x].amountconsumed))
             sheetdata[6] = combined_results[x].amountconsumed  # Quantity used
         else:
             sheetdata[6] = 0
@@ -323,7 +327,7 @@ async def GetResult(message, SelectedPlayer, SelectedActivity):
             async with message.channel.typing():
                 fstart = SelectedActivity.extrainfo.find("g,")
                 fend = SelectedActivity.extrainfo.find(";", fstart)
-                fstring = SelectedActivity.extrainfo[fstart+2:fend]
+                fstring = SelectedActivity.extrainfo[fstart + 2:fend]
                 fsplit = fstring.split("|")
                 fbegin = (sheetinfo.acell(fsplit[0]).value)
                 sheetlog.append_row(sheetdata, value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS",
@@ -347,7 +351,6 @@ async def GetResult(message, SelectedPlayer, SelectedActivity):
 
 
 def getRoll(roll):
-
     dice = roll.split("d")
 
     for x in range(len(dice)):
@@ -368,7 +371,6 @@ def auth_and_chan(ctx):
 
     def chk(msg):
         return ctx.author == msg.author and ctx.channel == msg.channel
-
 
     return chk
 
@@ -400,13 +402,12 @@ async def printdiscord(ctx, string):
     await ctx.channel.send(string)
     return
 
+
 global ActivityList
 
 
 async def waittime(seconds):
-
     while seconds > 86400:
-
         await asyncio.sleep(86400)
         seconds = seconds - 86400
 
@@ -416,7 +417,6 @@ async def waittime(seconds):
 
 
 async def extracommands(ctx):
-
     if ctx.content == ("$Host"):
         if not (await check_cred(ctx, "Developer")):
             return 1
@@ -499,7 +499,7 @@ async def SupplyUpdater(ctx):
     if running == 0:
         running = 1
         await ctx.channel.send("Running Wait Task")
-        channelstatus = client.get_channel(statusidchan)
+        channelstatus = bot.get_channel(statusidchan)
         editmessage = await channelstatus.fetch_message(messageid)
         await editmessage.edit(content=(await townstatus()))
     else:
@@ -512,30 +512,33 @@ async def SupplyUpdater(ctx):
 
     return
 
+
 updatecategories()
 
-@client.event
+
+@bot.event
 async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
+    print('We have logged in as {0.user}'.format(bot))
 
 
-@client.event
+@bot.event
 async def on_message(message):
-
-    if message.author == client.user:
+    if message.author == bot.user:
         return
 
     if message.content.startswith("$"):
         message.content = message.content[:1] + message.content[1].upper() + message.content[2:]
-        ctx = message
+        ctx = await bot.get_context(message)
 
         if await extracommands(ctx):
             return
 
         if message.content.startswith("$Trial1"):
-            await functions.confirm(ctx, "Confrim with a y")
+            if await functions.confirm(ctx, "Confrim Message"):
+                print("1")
+            else:
+                print("0")
             return
-
 
         if message.content.startswith("$Test"):
 
@@ -562,9 +565,9 @@ async def on_message(message):
                 await message.channel.send(send_string)
 
                 try:
-                    reply = await client.wait_for('message', timeout=30, check=lambda m: auth_and_chan(ctx)(m))
+                    reply = await bot.wait_for('message', timeout=30, check=lambda m: auth_and_chan(ctx)(m))
                     selectedinput = int(reply.content)
-                    if (not reply) or (not (2 <= selectedinput <= x-1)):
+                    if (not reply) or (not (2 <= selectedinput <= x - 1)):
                         await message.channel.send("Not an Input Selected")
                 except asyncio.TimeoutError:
                     await message.channel.send("Unconfirmed. Aborting.")
@@ -578,15 +581,16 @@ async def on_message(message):
             SelectedActivity = GetCategory(message)
 
             if not SelectedActivity:
-                await message.channel.send(f"{message.author.mention} {message.content}\n Activity {message.content} Not Found")
+                await message.channel.send(
+                    f"{message.author.mention} {message.content}\n Activity {message.content} Not Found")
                 return
 
             SelectedPlayer = GetPlayerIndex(message, SelectedActivity.column)
 
             if SelectedPlayer == False:
-                await message.channel.send(f"{message.author.mention} {message.content}\n User {message.author.nick} Not Found!")
+                await message.channel.send(
+                    f"{message.author.mention} {message.content}\n User {message.author.nick} Not Found!")
                 return
-
 
             IsValid = await GetValid(message, SelectedPlayer, SelectedActivity)
 
@@ -601,4 +605,4 @@ async def on_message(message):
             return
 
 
-client.run(token)
+bot.run(token)

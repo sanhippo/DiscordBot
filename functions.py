@@ -1,10 +1,11 @@
-
 import asyncio
 
 import random
 
 import discord
 from fuzzywuzzy import fuzz, process
+
+bot = discord.Client()
 
 def list_get(index, default, l):
     try:
