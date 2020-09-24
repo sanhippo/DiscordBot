@@ -60,6 +60,14 @@ async def on_ready():
         bot.load_extension(cog)
     return
 
+@bot.event
+async def on_message(message):
+
+
+    ctx = await bot.get_context(message)
+    return
+
+
 
 # Finally, login the bot
 bot.run(token, bot=True, reconnect=True)
