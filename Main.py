@@ -9,6 +9,7 @@ from discord.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from discord.ext import commands
 from discord.ext.commands.errors import CommandInvokeError
 import credentials
+import functions
 
 
 def get_prefix(client, message):
@@ -45,6 +46,24 @@ async def on_ready():
     for cog in cogs:
         bot.load_extension(cog)
     return
+
+@bot.event
+async def on_message(message):
+
+    if message.author.bot:
+        return
+
+    ctx = await bot.get_context(message)
+    if ctx.message.content.startswith("$Test"):
+        if await functions.confirm(ctx, "Are you Sure you want to do this? (y)", delete_msgs=True):
+            print("1")
+        else:
+            print("0")
+
+    return
+
+
+
 
 # Finally, login the bot
 bot.run(token, bot=True, reconnect=True)
