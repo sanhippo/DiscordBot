@@ -14,7 +14,7 @@ def get_prefix(client, message):
 
 bot = commands.Bot(                         # Create a new bot
     command_prefix=get_prefix,              # Set the prefix
-    description='Downtime Bot',  # Set a description for the bot
+    description='Downtime Bot',             # Set a description for the bot
     owner_id=146431797016657920,            # Your unique User ID
     case_insensitive=True                   # Make the commands case insensitive
 )
@@ -50,7 +50,6 @@ async def on_message(message):
 
     if ctx.command is not None:
         await bot.invoke(ctx)
-
 
     return
 
