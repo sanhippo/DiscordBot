@@ -38,6 +38,7 @@ async def on_ready():
         bot.load_extension(cog)
     return
 
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
