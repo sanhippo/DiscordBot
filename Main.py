@@ -1,39 +1,11 @@
-import asyncio
-import faulthandler
-import logging
-import sys
-import traceback
-
-import random
-import discord
-import gspread
-import asyncio
-
-import credentials
-import math
-import datetime
-import functions
-
-from discord.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from discord.ext import commands
-from discord.ext.commands.errors import CommandInvokeError
-
-
-Testing = credentials.Testing
-
-
-if Testing == 0:
-    token = credentials.BotToken  # Actual Token
-else:
-    token = credentials.TestToken  # Test Token
+import credentials
+from utils import functions
 
 
 def get_prefix(client, message):
 
     prefixes = ['$']    # sets the prefixes, u can keep it as an array of only 1 item if you need only one prefix
-
-    if not message.guild:
-        prefixes = ['$']   # Only allow '==' as a prefix when in DMs, this is optional
 
     # Allow users to @mention the bot instead of using a prefix when using a command. Also optional
     # Do `return prefixes` if u don't want to allow mentions instead of prefix.
@@ -42,33 +14,46 @@ def get_prefix(client, message):
 
 bot = commands.Bot(                         # Create a new bot
     command_prefix=get_prefix,              # Set the prefix
-    description='A bot used for tutorial',  # Set a description for the bot
+    description='Downtime Bot',  # Set a description for the bot
     owner_id=146431797016657920,            # Your unique User ID
     case_insensitive=True                   # Make the commands case insensitive
 )
 
-cogs = ['cogs.basic', 'cogs.embed']
+testing = credentials.testing
 
+if testing == 0:
+    token = credentials.bottoken  # Actual Token
+else:
+    token = credentials.testtoken  # Test Token
+
+
+# case_insensitive=True is used as the commands are case sensitive by default
+
+cogs = ['cogs.basic', 'cogs.embed']
 
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name} - {bot.user.id}')
-    bot.remove_command('help')
-    # Removes the help command
-    # Make sure to do this before loading the cogs
     for cog in cogs:
         bot.load_extension(cog)
     return
 
 @bot.event
 async def on_message(message):
-
+    if message.author.bot:
+        return
 
     ctx = await bot.get_context(message)
-    return
+    messagesplit = ctx.message.content.split(" ")
+    cmdlower = messagesplit[0].lower()
+    ctx.message.content = ctx.message.content.replace(messagesplit[0], cmdlower)
 
+    if ctx.command is not None:
+        await bot.invoke(ctx)
+
+
+    return
 
 
 # Finally, login the bot
 bot.run(token, bot=True, reconnect=True)
-

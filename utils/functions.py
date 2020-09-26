@@ -383,3 +383,17 @@ async def user_from_id(ctx, the_id):
 
     await update_known_user(fetched_user)
     return fetched_user
+
+async def checkperm(ctx, crole):
+    """
+    Checks To see if the user has a specific role or is a devloper
+    :type ctx: discord.ext.commands.Context
+    :type crole: role to check for
+    :rtype: bool
+    """
+    for roles in ctx.message.author.roles:
+        if (roles.name == crole) or (roles.name == "Developer"):
+            return True
+
+    await ctx.author.send(f"You need the Role: {crole} for this command!")
+    return False
