@@ -96,7 +96,6 @@ class Embed(commands.Cog):
 
         # Also set the embed author to the command user
 
-
         await msg.edit(
             embed=embed,
             content=None

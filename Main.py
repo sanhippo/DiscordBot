@@ -1,6 +1,7 @@
 from discord.ext import commands
 import credentials
 from utils import functions
+import old
 
 
 def get_prefix(client, message):
@@ -12,20 +13,20 @@ def get_prefix(client, message):
     return commands.when_mentioned_or(*prefixes)(client, message)
 
 
+Testing = credentials.Testing
+
+if Testing == 0:
+    token = credentials.BotToken  # Actual Token
+else:
+    token = credentials.TestToken  # Test Token
+
+
 bot = commands.Bot(                         # Create a new bot
     command_prefix=get_prefix,              # Set the prefix
     description='Downtime Bot',             # Set a description for the bot
     owner_id=146431797016657920,            # Your unique User ID
     case_insensitive=True                   # Make the commands case insensitive
 )
-
-testing = credentials.testing
-
-if testing == 0:
-    token = credentials.bottoken  # Actual Token
-else:
-    token = credentials.testtoken  # Test Token
-
 
 # case_insensitive=True is used as the commands are case sensitive by default
 
@@ -49,8 +50,12 @@ async def on_message(message):
     cmdlower = messagesplit[0].lower()
     ctx.message.content = ctx.message.content.replace(messagesplit[0], cmdlower)
 
+
     if ctx.command is not None:
         await bot.invoke(ctx)
+        return
+
+    await old.do_on_message(ctx.message, bot)
 
     return
 
