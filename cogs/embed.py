@@ -40,6 +40,7 @@ colors = {
 gc = gspread.service_account()
 botbook = gc.open("Bot Sheet")
 npcsheet = botbook.worksheet("npc")
+pcsheet = botbook.worksheet("pcs")
 
 
 
@@ -51,11 +52,11 @@ class Embed(commands.Cog):
     @commands.command(
         name='emote',
         description='Cmd For NPC Say, $e [Name] Text',
-        aliases=['e', 'say'],
+        aliases=['e'],
         usage='<text>',
         help="This Command is used to have the bot message as an NPC. The command is entered as $e [Name] Txt"
     )
-    async def embed_command(self, ctx):
+    async def embed_command(self, ctx, title, *, desc):
 
         # Define a check function that validates the message received by the bot
         def check(ms):
@@ -68,9 +69,6 @@ class Embed(commands.Cog):
             return
 
         await utils.functions.try_delete(ctx.message)
-        fstart = ctx.message.content.find("[")
-        fend = ctx.message.content.find("]", fstart)
-        title = ctx.message.content[fstart + 1:fend]
         stitlelower = title.lower()
 
         try:
@@ -80,7 +78,62 @@ class Embed(commands.Cog):
             await ctx.author.send("No Picture Found Message @developer If you want a Picture Added")
             useurl = False
 
-        desc = ctx.message.content[fend + 2:]
+        # Finally make the embed and send it
+        msg = await ctx.send(content='Now generating the embed...')
+
+        embed = discord.Embed(
+            title=title,
+            description=desc,
+            color=0xF1C40F
+        )
+        # Also set the thumbnail to be the bot's pfp
+        if useurl:
+            embed.set_thumbnail(url=npcsheet.cell(cell.row, cell.col + 1).value)
+
+        # Also set the embed author to the command user
+
+
+        await msg.edit(
+            embed=embed,
+            content=None
+        )
+        # Editing the message
+        # We have to specify the content to be 'None' here
+        # Since we don't want it to stay to 'Now generating embed...'
+
+        return
+
+    @commands.command(
+        name='say',
+        description='Cmd For Say, $s Text',
+        aliases=['s'],
+        usage='<text>',
+        help="This Command is used to have the bot message as a PC. The command is entered as $s Txt"
+    )
+    async def say_command(self, ctx, *, desc: str):
+
+        # Define a check function that validates the message received by the bot
+        def check(ms):
+            # Look for the message sent in the same channel where the command was used
+            # As well as by the user who used the command.
+            return ms.channel == ctx.message.channel and ms.author == ctx.message.author
+
+        await utils.functions.try_delete(ctx.message)
+        if not await utils.functions.checkperm(ctx, "Player"):
+            return
+
+        await utils.functions.try_delete(ctx.message)
+
+
+        title = ctx.author.nick
+        stitlelower = title.lower()
+
+        try:
+            cell = pcsheet.find(stitlelower)
+            useurl = True
+        except gspread.CellNotFound:
+            await ctx.author.send("No Picture Found Message @developer If you want a Picture Added")
+            useurl = False
 
         # Finally make the embed and send it
         msg = await ctx.send(content='Now generating the embed...')
@@ -92,10 +145,9 @@ class Embed(commands.Cog):
         )
         # Also set the thumbnail to be the bot's pfp
         if useurl:
-            embed.set_thumbnail(url=npcsheet.cell(cell.row, cell.col + 1).value)
+            embed.set_thumbnail(url=pcsheet.cell(cell.row, cell.col + 1).value)
 
         # Also set the embed author to the command user
-
 
         await msg.edit(
             embed=embed,
