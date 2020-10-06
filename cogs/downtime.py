@@ -13,9 +13,12 @@ class Downtime(commands.Cog):
         name='other',
         description='Handles all non assigned downtime things'
     )
-    async def dt_other(self, ctx):
+    async def dt_other(self, ctx, hours: int, selection=None):
         start = d.timestamp(d.now())
         # Gets the timestamp when the command was used
+
+        if selection is None:
+            print("Hey")
 
         msg = await ctx.send(content='Pinging')
         # Sends a message to the user in the channel the message with the command was received.

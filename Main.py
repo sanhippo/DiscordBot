@@ -2,6 +2,7 @@ from discord.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from discord.ext import commands
 from discord.ext.commands.errors import CommandInvokeError
 import credentials
+import old
 from utils import functions
 
 
@@ -97,8 +98,11 @@ async def on_message(message):
 
     if ctx.command is not None:
         await bot.invoke(ctx)
+        return
 
-    return
+    # await old.do_on_message(ctx.message, bot)
+
+
 
 
 # Finally, login the bot
