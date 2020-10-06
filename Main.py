@@ -50,7 +50,6 @@ async def on_message(message):
     cmdlower = messagesplit[0].lower()
     ctx.message.content = ctx.message.content.replace(messagesplit[0], cmdlower)
 
-
     if ctx.command is not None:
         await bot.invoke(ctx)
         return
