@@ -1,14 +1,27 @@
 
 import asyncio
-
 import random
-
 from itertools import zip_longest
-
 import discord
 from fuzzywuzzy import fuzz, process
-
 from cogs.models.errors import NoSelectionElements, SelectionCancelled
+import gspread
+
+gc = gspread.service_account()
+
+wdowntime = gc.open("Elantris Downtime")
+sheetplayer = wdowntime.worksheet("Player")
+
+
+class playerinfo:
+
+    def __init__(self, name, hoursused, maxhours, injury, activityvalue):
+        self.name = name
+        self.hoursused = int(hoursused)
+        self.maxhours = int(maxhours)
+        self.injury = int(injury)
+        self.activityvalue = int(activityvalue)
+        self.hoursleft = self.maxhours - self.hoursused
 
 
 def list_get(index, default, l):
@@ -402,3 +415,23 @@ async def checkperm(ctx, crole):
 
     await ctx.author.send(f"You need the Role: {crole} for this command!")
     return False
+
+
+async def getplayer(ctx):
+    """
+    Checks to See if the user is listed under active players
+    :param ctx: context
+    :return: Class of Player or None
+    """
+
+    list_of_dicts = sheetplayer.get_all_records()
+    print("Hey we are here")
+
+    for players in list_of_dicts:
+        print(players['Names'])
+        if ctx.author.nick == players['Names']:
+            print("Yes")
+        else:
+            print("No")
+
+    return None
