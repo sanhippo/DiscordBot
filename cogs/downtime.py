@@ -1,4 +1,5 @@
 from discord.ext import commands
+import utils
 from datetime import datetime as d
 
 
@@ -13,12 +14,20 @@ class Downtime(commands.Cog):
         name='other',
         description='Handles all non assigned downtime things'
     )
-    async def dt_other(self, ctx, hours: int, selection=None):
+    async def dt_other(self, ctx, hours: int, selection: int = None):
         start = d.timestamp(d.now())
         # Gets the timestamp when the command was used
 
         if selection is None:
-            print("Hey")
+            test1 = ("Hey", 1)
+            test2 = ("Hoe", 2)
+            test4 = ("Heyhoe", 3)
+            test3 = [test1, test2, test4]
+            candy = await utils.functions.get_selection(ctx, test3)
+            print(candy)
+
+
+
 
         msg = await ctx.send(content='Pinging')
         # Sends a message to the user in the channel the message with the command was received.

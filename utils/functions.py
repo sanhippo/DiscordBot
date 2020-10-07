@@ -3,8 +3,13 @@ import asyncio
 
 import random
 
+from itertools import zip_longest
+
 import discord
 from fuzzywuzzy import fuzz, process
+
+from cogs.models.errors import NoSelectionElements, SelectionCancelled
+
 
 def list_get(index, default, l):
     try:
