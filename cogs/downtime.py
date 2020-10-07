@@ -1,7 +1,12 @@
 from discord.ext import commands
 import utils
 from datetime import datetime as d
+import gspread
 
+gc = gspread.service_account()
+
+workbook = gc.open("Elantris Downtime")
+sheetstatus = workbook.worksheet("Status")
 
 # New - The Cog class must extend the commands.Cog class
 class Downtime(commands.Cog):
@@ -19,25 +24,17 @@ class Downtime(commands.Cog):
         # Gets the timestamp when the command was used
 
         if selection is None:
-            test1 = ("Hey", 1)
-            test2 = ("Hoe", 2)
-            test4 = ("Heyhoe", 3)
-            test3 = [test1, test2, test4]
-            candy = await utils.functions.get_selection(ctx, test3)
-            print(candy)
+            choices = []
+            get_values = sheetstatus.batch_get(["L:M"], major_dimension="Columns")
+            x = 1
 
+            for x in range(len(get_values[0][1])):
+                choices.append((get_values[0][1][x], x))
+                x = x + 1
 
+            candy = await utils.functions.get_selection(ctx, choices)
+            await ctx.send(choices[candy][0])
 
-
-        msg = await ctx.send(content='Pinging')
-        # Sends a message to the user in the channel the message with the command was received.
-        # Notifies the user that pinging has started
-
-        await msg.edit(content=f'Pong!\nOne message round-trip took {(d.timestamp(d.now()) - start) * 1000}ms.')
-        # Ping completed and round-trip duration show in ms
-        # Since it takes a while to send the messages
-        # it will calculate how much time it takes to edit an message.
-        # It depends usually on your internet connection speed
         return
 
 
