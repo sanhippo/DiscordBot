@@ -140,3 +140,24 @@ class RequiresLicense(AvraeException):
         super().__init__(f"insufficient license to view {entity.name}")
         self.entity = entity
         self.has_connected_ddb = has_connected_ddb
+
+
+class DatabaseError(Exception):
+    """A base exception class."""
+
+    def __init__(self, msg):
+        super().__init__(msg)
+
+
+class NoNickFound(DatabaseError):
+    """Raised when a nick name is not found in the database."""
+
+    def __init__(self, nick):
+        super().__init__(f"**Error:** The name {nick} was not found.")
+
+
+class ActivityNotFound(DatabaseError):
+    """Raised when an activity is not found in the database."""
+
+    def __init__(self, activity):
+        super().__init__(f"**Error:** The activity {activity} was not found.")

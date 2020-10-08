@@ -4,7 +4,7 @@ import random
 from itertools import zip_longest
 import discord
 from fuzzywuzzy import fuzz, process
-from cogs.models.errors import NoSelectionElements, SelectionCancelled
+from cogs.models.errors import NoSelectionElements, SelectionCancelled, NoNickFound, ActivityNotFound
 import gspread
 
 
@@ -433,7 +433,7 @@ async def getplayer(ctx):
         if ctx.author.nick == playerdata['Names:']:
             return playerdata
 
-    return None
+    raise NoNickFound(ctx.author.nick)
 
 ActivityArray = []
 
@@ -449,7 +449,15 @@ class Activity:  # Class for Activity Type Contains all the activity Information
         self.results = []
 
     def add_results(self, count, result):
-        self.results.append((count, result))
+        resultsplit = result.split(":")
+        description = resultsplit[0]
+        category = resultsplit[1]
+        log = resultsplit[2]
+        calcval = resultsplit[3]
+        hoursused = resultsplit[4]
+        resultdict = dict(roll=count, description=description, category=category, log=log, calcval=calcval, hoursused=hoursused)
+
+        self.results.append(resultdict)
 
 async def updateactivity(ctx, printmsg=None):
     """
@@ -468,7 +476,7 @@ async def updateactivity(ctx, printmsg=None):
         ActivityArray.append(Activity(get_values[0][x][0], get_values[0][x][1], get_values[0][x][2], get_values[0][x][3], get_values[0][x][4]))
 
         for y in range(5, len(get_values[0][1])):
-            ActivityArray[z].add_results(y, get_values[0][x][y])
+            ActivityArray[z].add_results(y-4, get_values[0][x][y])
 
         z = z + 1
 
@@ -498,5 +506,5 @@ async def getactivity(ctx, activity):
         if activities.name == activity:
             return activities
 
-    return None
+    raise ActivityNotFound(activity)
 

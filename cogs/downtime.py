@@ -4,7 +4,7 @@ from datetime import datetime as d
 import gspread
 import asyncio
 import d20
-
+import cogs.models.errors as error
 
 
 gc = gspread.service_account()
@@ -47,23 +47,26 @@ class Downtime(commands.Cog):
 
     # Define a Blacksmith Work
     @commands.command(
-        name='blacksmiting',
+        name='hunting',
         description='Handles all non assigned downtime things',
         aliases=['bs']
     )
     async def dt_blacksmith(self, ctx, hours: int, selection: int = None):
 
-        playerdata = await utils.functions.getplayer(ctx)
-
-        if playerdata is None:
-            await ctx.send(f"Error: User {ctx.author.nick} not found.")
+        try:
+            playerdata = await utils.functions.getplayer(ctx)
+        except error.NoNickFound as nf:
+            await ctx.send(nf)
             return
 
-        activitydata = await utils.functions.getactivity(ctx, ctx.command.name)
-
-        if activitydata is None:
-            await ctx.send(f"Error: Activity {ctx.command.name} not found.")
+        try:
+            activitydata = await utils.functions.getactivity(ctx, ctx.command.name)
+        except error.ActivityNotFound as anf:
+            await ctx.send(anf)
             return
+
+        pass
+
 
 
 def setup(bot):
