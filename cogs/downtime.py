@@ -51,11 +51,13 @@ class Downtime(commands.Cog):
     )
     async def dt_blacksmith(self, ctx, hours: int, selection: int = None):
 
-
         playerdata = await utils.functions.getplayer(ctx)
+
         if playerdata is None:
             await ctx.send(f"Error: User {ctx.author.nick} not found.")
             return
+
+        await utils.functions.updateactivity(ctx)
 
         if selection is None:
             choices = []

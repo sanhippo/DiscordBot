@@ -4,7 +4,7 @@ import random
 from itertools import zip_longest
 import discord
 from fuzzywuzzy import fuzz, process
-from cogs.models.errors import NoSelectionElements, SelectionCancelled, PlayerNotFound
+from cogs.models.errors import NoSelectionElements, SelectionCancelled
 import gspread
 
 
@@ -12,6 +12,7 @@ gc = gspread.service_account()
 
 wdowntime = gc.open("Elantris Downtime")
 sheetplayer = wdowntime.worksheet("Player")
+sheetactivties = wdowntime.worksheet("DowntimeTest")
 
 
 class playerinfo:
@@ -434,3 +435,51 @@ async def getplayer(ctx):
 
     return None
 
+ActivityArray = []
+
+
+class Activity:  # Class for Activity Type Contains all the activity Information and is update on start and $Update Cmd
+
+    def __init__(self, name, style, expectedinputs, extrainfo, roll):
+        self.name = name
+        self.style = style
+        self.expectedinputs = expectedinputs
+        self.extrainfo = extrainfo
+        self.roll = roll
+        self.results = []
+
+    def add_results(self, count, result):
+        self.results.append((count, result))
+
+async def updateactivity(ctx, printmsg=None):
+    """
+    :param ctx: context
+    :param printmsg: print out to command
+    :return: True if completed, or None
+    """
+    global ActivityArray
+    ActivityArray = []
+
+    get_values = sheetactivties.batch_get(["A:ZZ"], major_dimension="Columns")  # Gets all the Google Sheet Information Based on Columns
+
+    z = 0  # Sets to Row 0 for each new activity
+
+    for x in range(1, len(get_values[0])):
+        ActivityArray.append(Activity(get_values[0][x][0], get_values[0][x][1], get_values[0][x][2], get_values[0][x][3], get_values[0][x][4]))
+
+        for y in range(5, len(get_values[0][1])):
+            ActivityArray[z].add_results(y, get_values[0][x][y])
+
+        z = z + 1
+
+    return True
+
+
+async def getactivity(ctx, activity):
+    """
+    Gets the activity list
+    :param ctx: context
+    :param activity: str of class
+    :return: activity class or None
+    """
+    return
