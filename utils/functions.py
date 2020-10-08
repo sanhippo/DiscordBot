@@ -482,4 +482,21 @@ async def getactivity(ctx, activity):
     :param activity: str of class
     :return: activity class or None
     """
-    return
+    global ActivityArray
+    activity = activity.lower()
+
+    if len(ActivityArray) == 0:
+        await updateactivity(ctx)
+
+    for activities in ActivityArray:
+        if activities.name == activity:
+            return activities
+
+    await updateactivity(ctx)
+
+    for activities in ActivityArray:
+        if activities.name == activity:
+            return activities
+
+    return None
+

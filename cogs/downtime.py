@@ -2,6 +2,7 @@ from discord.ext import commands
 import utils
 from datetime import datetime as d
 import gspread
+import asyncio
 import d20
 
 
@@ -11,6 +12,7 @@ gc = gspread.service_account()
 workbook = gc.open("Elantris Downtime")
 sheetstatus = workbook.worksheet("Status")
 sheetplayer = workbook.worksheet("Player")
+
 
 # New - The Cog class must extend the commands.Cog class
 class Downtime(commands.Cog):
@@ -45,7 +47,7 @@ class Downtime(commands.Cog):
 
     # Define a Blacksmith Work
     @commands.command(
-        name='blacksmith',
+        name='blacksmiting',
         description='Handles all non assigned downtime things',
         aliases=['bs']
     )
@@ -57,24 +59,11 @@ class Downtime(commands.Cog):
             await ctx.send(f"Error: User {ctx.author.nick} not found.")
             return
 
-        await utils.functions.updateactivity(ctx)
+        activitydata = await utils.functions.getactivity(ctx, ctx.command.name)
 
-        if selection is None:
-            choices = []
-            get_values = sheetstatus.batch_get(["L:M"], major_dimension="Columns")
-            row = 1
-            arraypointer = 0
-
-            for row in range(len(get_values[0][1])):
-                if get_values[0][0][row] == "1":
-                    choices.append((get_values[0][1][row], arraypointer))
-                    arraypointer += 1
-                row += 1
-
-            candy = await utils.functions.get_selection(ctx, choices)
-            await ctx.send(choices[candy][0])
-
-        return
+        if activitydata is None:
+            await ctx.send(f"Error: Activity {ctx.command.name} not found.")
+            return
 
 
 def setup(bot):
