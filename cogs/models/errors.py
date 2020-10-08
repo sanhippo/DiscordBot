@@ -140,3 +140,10 @@ class RequiresLicense(AvraeException):
         super().__init__(f"insufficient license to view {entity.name}")
         self.entity = entity
         self.has_connected_ddb = has_connected_ddb
+
+
+class PlayerNotFound(AvraeException):
+    """Raised when a player is not found in the database."""
+
+    def __init__(self, user):
+        super().__init__(f"User: {user} not found in the database.")

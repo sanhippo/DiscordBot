@@ -4,6 +4,8 @@ from datetime import datetime as d
 import gspread
 import d20
 
+
+
 gc = gspread.service_account()
 
 workbook = gc.open("Elantris Downtime")
@@ -22,7 +24,6 @@ class Downtime(commands.Cog):
         description='Handles all non assigned downtime things'
     )
     async def dt_other(self, ctx, hours: int, selection: int = None):
-        start = d.timestamp(d.now())
         # Gets the timestamp when the command was used
 
         if selection is None:
@@ -51,7 +52,11 @@ class Downtime(commands.Cog):
     async def dt_blacksmith(self, ctx, hours: int, selection: int = None):
 
 
-        await utils.functions.getplayer(ctx)
+        playerdata = await utils.functions.getplayer(ctx)
+        if playerdata is None:
+            await ctx.send(f"Error: User {ctx.author.nick} not found.")
+            return
+
         if selection is None:
             choices = []
             get_values = sheetstatus.batch_get(["L:M"], major_dimension="Columns")

@@ -4,8 +4,9 @@ import random
 from itertools import zip_longest
 import discord
 from fuzzywuzzy import fuzz, process
-from cogs.models.errors import NoSelectionElements, SelectionCancelled
+from cogs.models.errors import NoSelectionElements, SelectionCancelled, PlayerNotFound
 import gspread
+
 
 gc = gspread.service_account()
 
@@ -425,13 +426,11 @@ async def getplayer(ctx):
     """
 
     list_of_dicts = sheetplayer.get_all_records()
-    print("Hey we are here")
 
-    for players in list_of_dicts:
-        print(players['Names'])
-        if ctx.author.nick == players['Names']:
-            print("Yes")
-        else:
-            print("No")
+    for playerdata in list_of_dicts:
+
+        if ctx.author.nick == playerdata['Names:']:
+            return playerdata
 
     return None
+
