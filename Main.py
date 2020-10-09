@@ -32,7 +32,7 @@ else:
 
 # case_insensitive=True is used as the commands are case sensitive by default
 
-cogs = ['cogs.basic', 'cogs.embed', 'cogs.dice', 'cogs.downtime']
+cogs = ['cogs.basic', 'cogs.embed', 'cogs.dice', 'cogs.downtime.blacksmithing']
 
 @bot.event
 async def on_ready():

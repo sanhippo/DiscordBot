@@ -459,6 +459,7 @@ class Activity:  # Class for Activity Type Contains all the activity Information
 
         self.results.append(resultdict)
 
+
 async def updateactivity(ctx, printmsg=None):
     """
     :param ctx: context
