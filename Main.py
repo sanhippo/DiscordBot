@@ -32,7 +32,7 @@ else:
 
 # case_insensitive=True is used as the commands are case sensitive by default
 
-cogs = ['cogs.basic', 'cogs.embed', 'cogs.dice', 'cogs.downtime.blacksmithing']
+cogs = ['cogs.basic', 'cogs.embed', 'cogs.dice', 'cogs.downtime', 'cogs.createpc']
 
 @bot.event
 async def on_ready():
@@ -99,46 +99,6 @@ async def on_message(message):
     if ctx.command is not None:
         await bot.invoke(ctx)
         return
-
-    if ctx.message.content == ".pc":
-        print("Create a PC")
-        # Check to see if player has a character to make
-            #if not leave setup and alarm with no character avaliable to be created
-
-        # Check to see if players has a character in creation already
-            #if they determine where they left off and jump to that step.
-
-        # Ask If they want to roll for stats or use the heroic array. Let them know rolled stats can't be moved.
-            #Rolled Stats = 6 4d6kh3
-                #Display Rolls
-                # Give Option to Reroll
-                    #Take Rolled Stats
-                    #Use Lesser Heroic Array
-                #Take Rolled Stats
-                #Take Lesser Heroic Array
-
-            #If Heroic Array Picked Let player assign rolls
-                #Strength score
-                #Dexterity Score
-                #Constitution Score
-                #Intelligence Score
-                #Wisdom Score
-                #Charisma Score
-
-            #Give Option to restart assigning process if heroic picked
-
-        #Ask Character To Pick Race.
-            #Pick Subclass if any.
-            # Assign Score improvements
-
-        #Ask Character To Pick Class
-            #Ask Character To Pick Subclass
-
-        #Ask Character To Pick Background
-
-        #Finialize character creation
-
-        #Mention to character they should level up, and check out the store for prices.
 
     # await old.do_on_message(ctx.message, bot)
 

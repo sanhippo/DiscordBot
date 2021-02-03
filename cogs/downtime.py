@@ -45,6 +45,29 @@ class Downtime(commands.Cog):
 
         return
 
+    # Define a Blacksmith Work
+    @commands.command(
+        name='hunting',
+        description='Handles all non assigned downtime things',
+        aliases=['bs']
+    )
+    async def dt_blacksmith(self, ctx, hours: int, selection: int = None):
+
+        try:
+            playerdata = await utils.functions.getplayer(ctx)
+        except error.NoNickFound as nf:
+            await ctx.send(nf)
+            return
+
+        try:
+            activitydata = await utils.functions.getactivity(ctx, ctx.command.name)
+        except error.ActivityNotFound as anf:
+            await ctx.send(anf)
+            return
+
+        pass
+
+
 
 def setup(bot):
     bot.add_cog(Downtime(bot))
