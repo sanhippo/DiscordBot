@@ -41,11 +41,30 @@ class CreatePC(commands.Cog):
 
         print(sent_rolls.id)
 
-        emoji = '<:ReRoll:806548887753457708>' #Reroll Icon
+        emoji_reroll = '<:ReRoll:806548887753457708>' #Reroll Icon
+        emoji_accept = '\N{THUMBS UP SIGN}' #Accept Emoji
 
-        await sent_rolls.add_reaction(emoji)
 
-        #await try_delete(sent_rolls)
+        await sent_rolls.add_reaction(emoji_reroll)
+        await sent_rolls.add_reaction(emoji_accept)
+
+        def check(reaction, user):
+            return user == ctx.author
+
+        try:
+            reaction = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.send("Timeout Waiting for Selection, Please use .pc to resume in the future.")
+        else:
+            if reaction == emoji_accept:
+                await ctx.send("You Accepted The Rolls")
+            elif reaction == emoji_reroll:
+                await ctx.send("You Rerolled your stats")
+            else:
+                await ctx.send("You can't add your own reactions")
+
+
+        await try_delete(sent_rolls)
 
                 # Give Option to Reroll
                     #Take Rolled Stats
