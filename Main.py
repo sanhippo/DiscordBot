@@ -8,7 +8,7 @@ from utils import functions
 
 def get_prefix(client, message):
 
-    prefixes = ['$']    # sets the prefixes, u can keep it as an array of only 1 item if you need only one prefix
+    prefixes = ['.']    # sets the prefixes, u can keep it as an array of only 1 item if you need only one prefix
 
     # Allow users to @mention the bot instead of using a prefix when using a command. Also optional
     # Do `return prefixes` if u don't want to allow mentions instead of prefix.
@@ -17,7 +17,7 @@ def get_prefix(client, message):
 
 bot = commands.Bot(                         # Create a new bot
     command_prefix=get_prefix,              # Set the prefix
-    description='Downtime Bot',             # Set a description for the bot
+    description='Desolation Bot',             # Set a description for the bot
     owner_id=146431797016657920,            # Your unique User ID
     case_insensitive=True                   # Make the commands case insensitive
 )
@@ -99,6 +99,46 @@ async def on_message(message):
     if ctx.command is not None:
         await bot.invoke(ctx)
         return
+
+    if ctx.message.content == ".pc":
+        print("Create a PC")
+        # Check to see if player has a character to make
+            #if not leave setup and alarm with no character avaliable to be created
+
+        # Check to see if players has a character in creation already
+            #if they determine where they left off and jump to that step.
+
+        # Ask If they want to roll for stats or use the heroic array. Let them know rolled stats can't be moved.
+            #Rolled Stats = 6 4d6kh3
+                #Display Rolls
+                # Give Option to Reroll
+                    #Take Rolled Stats
+                    #Use Lesser Heroic Array
+                #Take Rolled Stats
+                #Take Lesser Heroic Array
+
+            #If Heroic Array Picked Let player assign rolls
+                #Strength score
+                #Dexterity Score
+                #Constitution Score
+                #Intelligence Score
+                #Wisdom Score
+                #Charisma Score
+
+            #Give Option to restart assigning process if heroic picked
+
+        #Ask Character To Pick Race.
+            #Pick Subclass if any.
+            # Assign Score improvements
+
+        #Ask Character To Pick Class
+            #Ask Character To Pick Subclass
+
+        #Ask Character To Pick Background
+
+        #Finialize character creation
+
+        #Mention to character they should level up, and check out the store for prices.
 
     # await old.do_on_message(ctx.message, bot)
 
