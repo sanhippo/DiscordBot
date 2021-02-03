@@ -1,7 +1,14 @@
 from discord.ext import commands
 from datetime import datetime as d
 import d20
+import gspread
 from utils.functions import try_delete
+
+gc = gspread.service_account()
+
+workbook = gc.open("Desolation Player Management")
+sheet_managment = workbook.worksheet("Management")
+sheet_characters = workbook.worksheet("Character")
 
 
 # New - The Cog class must extend the commands.Cog class
@@ -19,8 +26,19 @@ class CreatePC(commands.Cog):
     async def createpc_command(self, ctx):
 
         await ctx.send(content="Starting Character Creation")
+        sheetdata = [0]
 
         # Check to see if player has a character to make
+        print(ctx.author.id)
+        try:
+            get_row = sheet_managment.find(str(ctx.author.id), in_column=1)
+        except gspread.exceptions.CellNotFound:
+            # No Player Data Found Create a New Log For the Character ID
+            sheetdata[0] = str(ctx.author.id)
+            sheet_managment.append_row(sheetdata, value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS",
+                                table_range="A1")
+
+        print(get_row)
             #if not leave setup and alarm with no character avaliable to be created
 
         # Check to see if players has a character in creation already
