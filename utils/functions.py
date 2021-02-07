@@ -507,4 +507,3 @@ async def getactivity(ctx, activity):
             return activities
 
     raise ActivityNotFound(activity)
-

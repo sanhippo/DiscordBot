@@ -29,17 +29,29 @@ class CreatePC(commands.Cog):
         sheetdata = [0]
 
         # Check to see if player has a character to make
-        print(ctx.author.id)
         try:
             get_row = sheet_managment.find(str(ctx.author.id), in_column=1)
         except gspread.exceptions.CellNotFound:
             # No Player Data Found Create a New Log For the Character ID
+            sheetdata = [0]
             sheetdata[0] = str(ctx.author.id)
             sheet_managment.append_row(sheetdata, value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS",
                                 table_range="A1")
+            #if not leave setup and alarm with no character available to be created
 
-        print(get_row)
-            #if not leave setup and alarm with no character avaliable to be created
+        try:
+            get_character = sheet_characters.findall(str(ctx.author.id), in_column=2)
+        finally:
+            if len(get_character) == 0:
+                # The Player Needs To Create A Character
+                await ctx.send("Create a Character\nEnter a name:")
+
+                try:
+                    reaction, user = await self.bot.wait_for('message', timeout=10.0, check=check)
+                except asyncio.TimeoutError:
+
+                    await ctx.send("Timeout Waiting for Selection, Please use .pc to resume in the future.")
+
 
         # Check to see if players has a character in creation already
             #if they determine where they left off and jump to that step.
@@ -67,18 +79,24 @@ class CreatePC(commands.Cog):
         await sent_rolls.add_reaction(emoji_accept)
 
         def check(reaction, user):
-            return user == ctx.author
+            if user == ctx.author:
+                return reaction
 
         try:
-            reaction = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
         except asyncio.TimeoutError:
+
             await ctx.send("Timeout Waiting for Selection, Please use .pc to resume in the future.")
         else:
-            if reaction == emoji_accept:
+
+            if reaction.emoji == '👍':
+
                 await ctx.send("You Accepted The Rolls")
-            elif reaction == emoji_reroll:
-                await ctx.send("You Rerolled your stats")
+            elif str(reaction.emoji) == "<:ReRoll:806548887753457708>":
+
+                await ctx.send("You Accepted The Rolls2")
             else:
+
                 await ctx.send("You can't add your own reactions")
 
 
