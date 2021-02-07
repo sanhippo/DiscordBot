@@ -2,7 +2,7 @@ from discord.ext import commands
 from datetime import datetime as d
 import d20
 import gspread
-from utils.functions import try_delete
+from utils.functions import try_delete, getinput, confirm
 
 gc = gspread.service_account()
 
@@ -44,13 +44,11 @@ class CreatePC(commands.Cog):
         finally:
             if len(get_character) == 0:
                 # The Player Needs To Create A Character
-                await ctx.send("Create a Character\nEnter a name:")
+                name = await getinput(ctx, "What Is your Characters Name?")
 
-                try:
-                    reaction, user = await self.bot.wait_for('message', timeout=10.0, check=check)
-                except asyncio.TimeoutError:
+                await confirm(ctx, f"Confirm The Name: {name}")
 
-                    await ctx.send("Timeout Waiting for Selection, Please use .pc to resume in the future.")
+
 
 
         # Check to see if players has a character in creation already

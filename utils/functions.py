@@ -289,6 +289,28 @@ async def confirm(ctx, message, delete_msgs=False):
             pass
     return replyBool
 
+async def getinput(ctx, message, delete_msgs=True):
+    """
+    Confirms whether a user wants to take an action.
+    :rtype: string
+    :param ctx: The current Context.
+    :param message: The message for the user to confirm.
+    :param delete_msgs: Whether to delete the messages.
+    :return: Whether the user confirmed or not. None if no reply was recieved
+    """
+    msg = await ctx.channel.send(message)
+    try:
+        reply = await ctx.bot.wait_for('message', timeout=30, check=auth_and_chan(ctx))
+    except asyncio.TimeoutError:
+        return None
+    replystring = reply.content
+    if delete_msgs:
+        try:
+            await msg.delete()
+            await reply.delete()
+        except:
+            pass
+    return replystring
 
 def auth_and_chan(ctx):
     """Message check: same author and channel"""
