@@ -2,7 +2,7 @@ from discord.ext import commands
 from datetime import datetime as d
 import d20
 import gspread
-from utils.functions import try_delete, getinput, confirm
+from utils.functions import try_delete, getinput, confirm, search, search_and_select
 
 gc = gspread.service_account()
 
@@ -10,43 +10,56 @@ workbook = gc.open("Desolation Player Management")
 sheet_managment = workbook.worksheet("Management")
 sheet_characters = workbook.worksheet("Character")
 
+emoji_reroll = '<:ReRoll:806548887753457708>'  # Reroll Icon
+emoji_accept = '\N{THUMBS UP SIGN}'  # Accept Emoji
+
 
 # New - The Cog class must extend the commands.Cog class
-class CreatePC(commands.Cog):
+class playercharacter(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
     # Define a new command
     @commands.command(
-        name='createpc',
-        description='Create a New Player Character',
+        name='playercharacter',
+        description='Create a New Player Character, or check existing character',
         aliases=['pc']
     )
-    async def createpc_command(self, ctx):
+    async def PCCommand(self, ctx, *, character: str = None):
 
-        await ctx.send(content="Starting Character Creation")
-        sheetdata = [0]
+        batch_character_data = sheet_characters.get_all_records()
 
-        # Check to see if player has a character to make
-        try:
-            get_row = sheet_managment.find(str(ctx.author.id), in_column=1)
-        except gspread.exceptions.CellNotFound:
-            # No Player Data Found Create a New Log For the Character ID
-            sheetdata = [0]
-            sheetdata[0] = str(ctx.author.id)
-            sheet_managment.append_row(sheetdata, value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS",
-                                table_range="A1")
-            #if not leave setup and alarm with no character available to be created
+        if character is not None:
 
-        try:
+            results = None
+            try:
+                results = await search_and_select(ctx, batch_character_data, character, lambda batch_character_data: batch_character_data["Name"])
+            finally:
+                if results is None:  # Exit if no matching character name is found
+                    return
+                print(str(results.DiscordID))
+
+        try:  # See if the user has a character
             get_character = sheet_characters.findall(str(ctx.author.id), in_column=2)
         finally:
-            if len(get_character) == 0:
+            if len(get_character) == 0:  # Player Needs to Create a Character
                 # The Player Needs To Create A Character
                 name = await getinput(ctx, "What Is your Characters Name?")
 
-                await confirm(ctx, f"Confirm The Name: {name}")
+                if name is None:
+                    await ctx.send("Timeout. Try .PC in the future to continue.")
+                    return
+                else:
+                    # Add check to see if they accepted or not. If Accepted Continue.
+                    await confirm(ctx, f"Confirm The Name: {name}")
+                    cstep = 100
+                    characterdata = [str(name), str(ctx.author.id), cstep]
+                    sheet_characters.append_row(characterdata, value_input_option='USER_ENTERED',
+                                               insert_data_option="INSERT_ROWS",
+                                               table_range="A1")
+            else:  # If the user has at least one character either created or already existing
+                print("Hey hoe")
 
 
 
@@ -69,8 +82,6 @@ class CreatePC(commands.Cog):
 
         print(sent_rolls.id)
 
-        emoji_reroll = '<:ReRoll:806548887753457708>' #Reroll Icon
-        emoji_accept = '\N{THUMBS UP SIGN}' #Accept Emoji
 
 
         await sent_rolls.add_reaction(emoji_reroll)
@@ -133,6 +144,6 @@ class CreatePC(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(CreatePC(bot))
+    bot.add_cog(playercharacter(bot))
     # Adds the Basic commands to the bot
     # Note: The "setup" function has to be there in every cog file

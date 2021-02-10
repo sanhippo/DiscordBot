@@ -289,7 +289,8 @@ async def confirm(ctx, message, delete_msgs=False):
             pass
     return replyBool
 
-async def getinput(ctx, message, delete_msgs=True):
+
+async def getinput(ctx, message, delete_msgs=True, time=30):
     """
     Confirms whether a user wants to take an action.
     :rtype: string
@@ -300,8 +301,14 @@ async def getinput(ctx, message, delete_msgs=True):
     """
     msg = await ctx.channel.send(message)
     try:
-        reply = await ctx.bot.wait_for('message', timeout=30, check=auth_and_chan(ctx))
+        reply = await ctx.bot.wait_for('message', timeout=time, check=auth_and_chan(ctx))
     except asyncio.TimeoutError:
+        if delete_msgs:
+            try:
+                await msg.delete()
+                await reply.delete()
+            except:
+                pass
         return None
     replystring = reply.content
     if delete_msgs:
