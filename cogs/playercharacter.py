@@ -38,78 +38,80 @@ class playercharacter(commands.Cog):
             finally:
                 if results is None:  # Exit if no matching character name is found
                     return
-                print(str(results.DiscordID))
+                #  Display Character Information
+                # TODO: Add code to display Character Information
+                return
 
-        try:  # See if the user has a character
-            get_character = sheet_characters.findall(str(ctx.author.id), in_column=2)
-        finally:
-            if len(get_character) == 0:  # Player Needs to Create a Character
-                # The Player Needs To Create A Character
+        # See if the user has a character # Todo: Needs to be improved to not be so slow try a search and select
+        for character_data in batch_character_data:
+            if str(character_data["DiscordID"]) == str(ctx.author.id):
+                break
+            else:
+                character_data = None
+        if character_data is None:
+            x = 0
+            while x == 0:
                 name = await getinput(ctx, "What Is your Characters Name?")
 
-                if name is None:
+                if name is None:  # Timeout waiting for user to enter a name.
                     await ctx.send("Timeout. Try .PC in the future to continue.")
                     return
-                else:
-                    # Add check to see if they accepted or not. If Accepted Continue.
-                    await confirm(ctx, f"Confirm The Name: {name}")
-                    cstep = 100
-                    characterdata = [str(name), str(ctx.author.id), cstep]
-                    sheet_characters.append_row(characterdata, value_input_option='USER_ENTERED',
-                                               insert_data_option="INSERT_ROWS",
-                                               table_range="A1")
-            else:  # If the user has at least one character either created or already existing
-                print("Hey hoe")
 
+                #  TODO: Change Code to Update File Instead of making new ones
+                confirmation = await confirm(ctx, f"Confirm The Name: {name}", delete_msgs=True)
 
+                if confirmation is None:
+                    await ctx.send("Timeout. Try .PC in the future to continue.")
+                    return
+                elif confirmation:
+                    x = 1
+                    character_data = {
+                        "Name": str(name),
+                        "DiscordID": str(ctx.author.id),
+                        "Step": 100
+                    }
+                    sheetdata = [character_data["Name"], character_data["DiscordID"], character_data["Step"]]
+                    sheet_characters.append_row(sheetdata, value_input_option='USER_ENTERED',
+                                            insert_data_option="INSERT_ROWS",
+                                            table_range="A1")
 
+        while character_data["Step"] < 200:
+            roll_str = d20.roll("4d6kh3")
+            roll_dex = d20.roll("4d6kh3")
+            roll_con = d20.roll("4d6kh3")
+            roll_int = d20.roll("4d6kh3")
+            roll_wis = d20.roll("4d6kh3")
+            roll_cha = d20.roll("4d6kh3")
 
-        # Check to see if players has a character in creation already
-            #if they determine where they left off and jump to that step.
+            # Display Rolls
+            sent_rolls = await ctx.send(f"**Str:** {roll_str}\n**Dex:** {roll_dex}\n**Con:** {roll_con}\n**Int:** {roll_int}\n**Wis:** {roll_wis}\n**Cha:** {roll_cha}")
 
-        # Ask If they want to roll for stats or use the heroic array. Let them know rolled stats can't be moved.
-             #Rolled Stats = 6 4d6kh3
+            await sent_rolls.add_reaction(emoji_reroll)
+            await sent_rolls.add_reaction(emoji_accept)
 
-        roll_str = d20.roll("4d6kh3")
-        roll_dex = d20.roll("4d6kh3")
-        roll_con = d20.roll("4d6kh3")
-        roll_int = d20.roll("4d6kh3")
-        roll_wis = d20.roll("4d6kh3")
-        roll_cha = d20.roll("4d6kh3")
+            def check(reaction, user):
+                if user == ctx.author:
+                    return reaction
 
-        # Display Rolls
-        sent_rolls = await ctx.send(f"**Str:** {roll_str}\n**Dex:** {roll_dex}\n**Con:** {roll_con}\n**Int:** {roll_int}\n**Wis:** {roll_wis}\n**Cha:** {roll_cha}")
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
+            except asyncio.TimeoutError:
 
-        print(sent_rolls.id)
-
-
-
-        await sent_rolls.add_reaction(emoji_reroll)
-        await sent_rolls.add_reaction(emoji_accept)
-
-        def check(reaction, user):
-            if user == ctx.author:
-                return reaction
-
-        try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
-        except asyncio.TimeoutError:
-
-            await ctx.send("Timeout Waiting for Selection, Please use .pc to resume in the future.")
-        else:
-
-            if reaction.emoji == '👍':
-
-                await ctx.send("You Accepted The Rolls")
-            elif str(reaction.emoji) == "<:ReRoll:806548887753457708>":
-
-                await ctx.send("You Accepted The Rolls2")
+                await ctx.send("Timeout Waiting for Selection, Please use .pc to resume in the future.")
             else:
 
-                await ctx.send("You can't add your own reactions")
+                if reaction.emoji == '👍':
+                    character_data["Step"] = 200
+
+                elif str(reaction.emoji) == "<:ReRoll:806548887753457708>":
+                        if character_data["Step"] == 100:
+                            character_data["Step"] = 150
+
+                else:
+                    await ctx.send("You can't add your own reactions. Aborting, Please use .pc to resume in the future.")
 
 
-        await try_delete(sent_rolls)
+            await try_delete(sent_rolls)
 
                 # Give Option to Reroll
                     #Take Rolled Stats
