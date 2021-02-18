@@ -6,6 +6,7 @@ import discord
 from fuzzywuzzy import fuzz, process
 from cogs.models.errors import NoSelectionElements, SelectionCancelled, NoNickFound, ActivityNotFound
 import gspread
+from gspread.models import Cell
 
 
 gc = gspread.service_account()
@@ -13,6 +14,9 @@ gc = gspread.service_account()
 wdowntime = gc.open("Elantris Downtime")
 sheetplayer = wdowntime.worksheet("Player")
 sheetactivties = wdowntime.worksheet("DowntimeTest")
+workbook = gc.open("Desolation Player Management")
+sheet_managment = workbook.worksheet("Management")
+sheet_characters = workbook.worksheet("Character")
 
 
 class playerinfo:
@@ -536,3 +540,28 @@ async def getactivity(ctx, activity):
             return activities
 
     raise ActivityNotFound(activity)
+
+
+def update_character_data(character_data, rownumber, checkinfo_data=None):
+    """
+    Gets the activity list
+    :param Character_data: Dictionary of Character Data
+    :param checkinfo_data: Dictionary to compare to
+    :return: bool
+    """
+    cells = []
+    col = 1
+    if checkinfo_data is None:
+        for data in character_data:
+            cells.append(Cell(row=rownumber, col=col, value=str(character_data[data])))
+            col += 1
+        sheet_characters.update_cells(cells, value_input_option="USER_ENTERED")
+        return True
+    else:
+        False
+
+
+def check(reaction, user):
+    if user == ctx.author:
+        return reaction
+
