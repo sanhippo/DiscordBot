@@ -5,6 +5,9 @@ import credentials
 import old
 from utils import functions
 
+global datalogdelay
+datalogdealy = False
+
 
 def get_prefix(client, message):
 
@@ -95,6 +98,20 @@ async def on_message(message):
     messagesplit = ctx.message.content.split(" ")
     cmdlower = messagesplit[0].lower()
     ctx.message.content = ctx.message.content.replace(messagesplit[0], cmdlower)
+
+    if ctx.channel.category.name == "in-character":
+        global datalogdealy
+        if datalogdealy is False:
+            shorttermdata = []
+            shorttermdata.append({"id": ctx.author.id, "count": 1})
+            datalogdealy = True
+        else:
+            for record in shorttermdata:
+                if record["id"] == ctx.author.id:
+                    record["count"] += 1
+                    break
+            print("1")
+        print("2")
 
     if ctx.command is not None:
         await bot.invoke(ctx)
