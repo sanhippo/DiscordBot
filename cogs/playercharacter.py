@@ -184,27 +184,27 @@ class playercharacter(commands.Cog):
                 character_data["Cha"] = 0
                 character_data["Step"] = 210
 
-            # Assign Numbers Highest to Lowest 16,14,13,11,8,7
+            Statarray = (16, 14, 13, 12, 11, 8, 7)
             if character_data["Step"] == 210:
-                sentassignment = await ctx.send("Assign 16: }.")
+                x = 0
 
             if character_data["Step"] == 220:
-                sentassignment = await ctx.send("Assign 14: }.")
+                x = 1
 
             if character_data["Step"] == 230:
-                sentassignment = await ctx.send("Assign 13: }.")
+                x = 2
 
             if character_data["Step"] == 240:
-                sentassignment = await ctx.send("Assign 13: }.")
+                x = 3
 
             if character_data["Step"] == 250:
-                sentassignment = await ctx.send("Assign 11: }.")
+                x = 4
 
             if character_data["Step"] == 260:
-                sentassignment = await ctx.send("Assign 8: }.")
+                x = 5
 
             if character_data["Step"] < 270:
-
+                sentassignment = await ctx.send(f"Assign {Statarray[x]}: ")
                 if character_data["Str"] == 0:
                     await sentassignment.add_reaction(emoji_str)
 
