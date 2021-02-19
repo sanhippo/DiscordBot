@@ -1,4 +1,3 @@
-
 import asyncio
 import random
 from itertools import zip_longest
@@ -564,4 +563,39 @@ def update_character_data(character_data, rownumber, checkinfo_data=None):
 def check(reaction, user):
     if user == ctx.author:
         return reaction
+
+
+async def waittime(seconds):
+
+    while seconds > 86400:
+
+        await asyncio.sleep(86400)
+        seconds = seconds - 86400
+
+    await asyncio.sleep(seconds)
+
+    return
+
+
+def update_rp_data(newinfo):
+    """
+    Gets the activity list
+    :param newinfo: Dictionary of ID and character counts
+    :return: null
+    """
+    cells = []
+    col = 1
+    batch_player_data = sheet_managment.get_all_records()
+
+    for x in newinfo:
+        rownumber = 2
+        for y in batch_player_data:
+            if y["DiscordID"] == x["id"]:
+                cells.append(Cell(row=rownumber, col=3, value=str(x["count"]+y["rp_messages"])))
+                break
+            else:
+                rownumber += 1
+
+    sheet_characters.update_cells(cells, value_input_option="USER_ENTERED")
+    return
 

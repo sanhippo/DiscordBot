@@ -2,11 +2,13 @@ from discord.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from discord.ext import commands
 from discord.ext.commands.errors import CommandInvokeError
 import credentials
-import old
 from utils import functions
+
 
 global datalogdelay
 datalogdealy = False
+global shorttermdata
+shorttermdata = []
 
 
 def get_prefix(client, message):
@@ -101,17 +103,23 @@ async def on_message(message):
 
     if ctx.channel.category.name == "in-character":
         global datalogdealy
+        global shorttermdata
         if datalogdealy is False:
             shorttermdata = []
-            shorttermdata.append({"id": ctx.author.id, "count": 1})
+            shorttermdata.append({"id": ctx.author.id, "count": len(ctx.message.content)})
             datalogdealy = True
+            await functions.waittime(6)
+            functions.update_rp_data(shorttermdata)
+            datalogdealy = False
+
         else:
             for record in shorttermdata:
                 if record["id"] == ctx.author.id:
-                    record["count"] += 1
+                    record["count"] = record["count"] + len(ctx.message.content)
                     break
-            print("1")
-        print("2")
+            if record["id"] != ctx.author.id:
+                shorttermdata.append({"id": ctx.author.id, "count": len(ctx.message.content)})
+            print("Heyo")
 
     if ctx.command is not None:
         await bot.invoke(ctx)
