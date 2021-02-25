@@ -6,6 +6,7 @@ from fuzzywuzzy import fuzz, process
 from cogs.models.errors import NoSelectionElements, SelectionCancelled, NoNickFound, ActivityNotFound
 import gspread
 from gspread.models import Cell
+import datetime
 
 
 gc = gspread.service_account()
@@ -303,6 +304,7 @@ async def getinput(ctx, message, delete_msgs=True, time=30):
     :return: Whether the user confirmed or not. None if no reply was recieved
     """
     msg = await ctx.channel.send(message)
+
     try:
         reply = await ctx.bot.wait_for('message', timeout=time, check=auth_and_chan(ctx))
     except asyncio.TimeoutError:
@@ -321,14 +323,6 @@ async def getinput(ctx, message, delete_msgs=True, time=30):
         except:
             pass
     return replystring
-
-def auth_and_chan(ctx):
-    """Message check: same author and channel"""
-
-    def chk(msg):
-        return msg.author == ctx.author and msg.channel == ctx.channel
-
-    return chk
 
 
 async def try_delete(message):
@@ -436,7 +430,7 @@ async def user_from_id(ctx, the_id):
     await update_known_user(fetched_user)
     return fetched_user
 
-async def checkperm(ctx, crole):
+async def checkperm(ctx, crole, messageuser=True, message=None):
     """
     Checks To see if the user has a specific role or is a devloper
     :type ctx: discord.ext.commands.Context
@@ -446,8 +440,12 @@ async def checkperm(ctx, crole):
     for roles in ctx.message.author.roles:
         if (roles.name == crole) or (roles.name == "Developer"):
             return True
-
-    await ctx.author.send(f"You need the Role: {crole} for this command!")
+    if messageuser:
+        if message is None:
+            sendmessage = f"You need the Role: {crole} for this command!"
+        else:
+            sendmessage = message
+        await ctx.author.send(message)
     return False
 
 
@@ -560,11 +558,6 @@ def update_character_data(character_data, rownumber, checkinfo_data=None):
         False
 
 
-def check(reaction, user):
-    if user == ctx.author:
-        return reaction
-
-
 async def waittime(seconds):
 
     while seconds > 86400:
@@ -596,6 +589,32 @@ def update_rp_data(newinfo):
             else:
                 rownumber += 1
 
-    sheet_characters.update_cells(cells, value_input_option="USER_ENTERED")
+    sheet_managment.update_cells(cells, value_input_option="USER_ENTERED")
     return
+
+
+def get_emoji(ctx, Search):
+    """
+    Gets the activity list
+    :param ctx: Contexts
+    :param Search: Name of emoji to Look For
+    :return: emoji or None
+    """
+    for emoji in ctx.guild.emojis:
+        if emoji.name == Search:
+            return emoji
+    return None
+
+
+def auth_and_chan(ctx):
+    """Message check: same author and channel"""
+
+    def chk(msg):
+        return msg.author == ctx.author and msg.channel == ctx.channel
+
+    return chk
+
+
+def utc_to_local(utc_dt):  # Convert UTC Time from Discord to EDT Time for use in the google sheet
+    return utc_dt.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
 

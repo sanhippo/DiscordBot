@@ -2,18 +2,16 @@ from discord.ext import commands
 from datetime import datetime as d
 import d20
 import gspread
-from utils.functions import try_delete, getinput, confirm, search, search_and_select, update_character_data
+from utils.functions import try_delete, getinput, confirm, search, search_and_select, update_character_data, get_emoji, auth_and_chan
 from gspread.models import Cell
+import asyncio
+from utils.races import getallraces
 
 gc = gspread.service_account()
 
 workbook = gc.open("Desolation Player Management")
 sheet_managment = workbook.worksheet("Management")
 sheet_characters = workbook.worksheet("Character")
-
-emoji_reroll = '<:ReRoll:806548887753457708>'  # Reroll Icon
-emoji_accept = '\N{THUMBS UP SIGN}'  # Accept Emoji
-emoji_statarray = '<:Flameicon:811997280516309123>'
 
 strcolum = "D"
 chacolum = "I"
@@ -98,80 +96,48 @@ class playercharacter(commands.Cog):
                 roll_int = character_data["Int"]
                 roll_wis = character_data["Wis"]
                 roll_cha = character_data["Cha"]
-
             # Display Rolls
             sent_rolls = await ctx.send(f"**Str:** {roll_str}\n**Dex:** {roll_dex}\n**Con:** {roll_con}\n**Int:** {roll_int}\n**Wis:** {roll_wis}\n**Cha:** {roll_cha}")
-
             if character_data["Step"] == 100:  # Rolling for the First Time
-                await sent_rolls.add_reaction(emoji_reroll)
-
-            await sent_rolls.add_reaction(emoji_accept)
-            await sent_rolls.add_reaction(emoji_statarray)
+                await sent_rolls.add_reaction(get_emoji(ctx, "ReRoll"))
+            await sent_rolls.add_reaction(get_emoji(ctx, "Approved"))
+            await sent_rolls.add_reaction(get_emoji(ctx, "Heroic"))
 
             def check(reaction, user):
-                if user == ctx.author:
-                    return reaction
+                return user == ctx.message.author
 
-            reaction = None
             try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=5.0, check=check)
-            finally:
-                if reaction is None:
-                    if (character_data["Step"] == 100) or (character_data["Step"] == 150):
-
-                        # Convert Rolls To Storage
-                        character_data["Str"] = roll_str.total
-                        character_data["Dex"] = roll_dex.total
-                        character_data["Con"] = roll_con.total
-                        character_data["Int"] = roll_int.total
-                        character_data["Wis"] = roll_wis.total
-                        character_data["Cha"] = roll_cha.total
-
-                        # Update So On Resume It Does Not roll again
-                        if character_data["Step"] == 100:
-                            character_data["Step"] = 125
-                        else:
-                            character_data["Step"] = 175
-
-                        update_character_data(character_data, rowfound)
-
-                    await ctx.send("Timeout Waiting for Selection, Please use .pc to resume in the future.")
-                else:
-
-                    if reaction.emoji == '👍':
-
-                        character_data["Step"] = 300
-
-                    elif str(reaction.emoji) == emoji_reroll:
-                        if character_data["Step"] == 100:
-                            character_data["Step"] = 150
-
-                    elif str(reaction.emoji) == emoji_statarray:
-                        character_data["Step"] = 200
-
+                reaction, user = await self.bot.wait_for('reaction_add', check=check, timeout=30.0)
+            except asyncio.TimeoutError:  # Indent error here, delete one tabulation
+                # if reaction is None:
+                if (character_data["Step"] == 100) or (character_data["Step"] == 150):
+                    # Convert Rolls To Storage
+                    character_data["Str"] = roll_str.total
+                    character_data["Dex"] = roll_dex.total
+                    character_data["Con"] = roll_con.total
+                    character_data["Int"] = roll_int.total
+                    character_data["Wis"] = roll_wis.total
+                    character_data["Cha"] = roll_cha.total
+                    # Update So On Resume It Does Not roll again
+                    if character_data["Step"] == 100:
+                        character_data["Step"] = 125
                     else:
-                        await ctx.send("You can't add your own reactions. Aborting, Please use .pc to resume in the future.")
-
+                        character_data["Step"] = 175
+                    update_character_data(character_data, rowfound)
+                    await try_delete(sent_rolls)
+                await ctx.send("Timeout Waiting for Selection, Please use .pc to resume in the future.")
+                return
+            else:
+                if reaction.emoji.name == 'Approved':
+                    character_data["Step"] = 300
+                elif reaction.emoji.name == "ReRoll":
+                    if character_data["Step"] == 100:
+                        character_data["Step"] = 150
+                elif reaction.emoji.name == "Heroic":
+                    character_data["Step"] = 200
+                else:
+                    await ctx.send("You can't add your own reactions. Aborting, Please use .pc to resume in the future.")
                 await try_delete(sent_rolls)
-
-
-
-
-                # Give Option to Reroll
-                    #Take Rolled Stats
-                    #Use Lesser Heroic Array
-                #Take Rolled Stats
-                #Take Lesser Heroic Array
-
-            #If Heroic Array Picked Let player assign rolls
-                #Strength score
-                #Dexterity Score
-                #Constitution Score
-                #Intelligence Score
-                #Wisdom Score
-                #Charisma Score
-
-            #Give Option to restart assigning process if heroic picked
 
         # Manually Assign Stats
         while 200 <= character_data["Step"] < 300:
@@ -184,49 +150,117 @@ class playercharacter(commands.Cog):
                 character_data["Cha"] = 0
                 character_data["Step"] = 210
 
-            Statarray = (16, 14, 13, 12, 11, 8, 7)
+            Statarray = (16, 14, 13, 11, 8, 7)
             if character_data["Step"] == 210:
                 x = 0
-
             if character_data["Step"] == 220:
                 x = 1
-
             if character_data["Step"] == 230:
                 x = 2
-
             if character_data["Step"] == 240:
                 x = 3
-
             if character_data["Step"] == 250:
                 x = 4
-
             if character_data["Step"] == 260:
                 x = 5
-
-            if character_data["Step"] < 270:
+                character_data["Step"] = 270
+            if character_data["Step"] <= 250:
                 sentassignment = await ctx.send(f"Assign {Statarray[x]}: ")
                 if character_data["Str"] == 0:
-                    await sentassignment.add_reaction(emoji_str)
-
+                    await sentassignment.add_reaction(get_emoji(ctx, "Strength"))
                 if character_data["Dex"] == 0:
-                    await sentassignment.add_reaction(emoji_dex)
-
+                    await sentassignment.add_reaction(get_emoji(ctx, "Dexterity"))
                 if character_data["Con"] == 0:
-                    await sentassignment.add_reaction(emoji_con)
-
+                    await sentassignment.add_reaction(get_emoji(ctx, "Constitution"))
                 if character_data["Int"] == 0:
-                    await sentassignment.add_reaction(emoji_int)
-
+                    await sentassignment.add_reaction(get_emoji(ctx, "Intelligence"))
                 if character_data["Wis"] == 0:
-                    await sentassignment.add_reaction(emoji_wis)
-
+                    await sentassignment.add_reaction(get_emoji(ctx, "Wisdom"))
                 if character_data["Cha"] == 0:
-                    await sentassignment.add_reaction(emoji_cha)
+                    await sentassignment.add_reaction(get_emoji(ctx, "Charisma"))
+                try:
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
+                except asyncio.TimeoutError:
+                    update_character_data(character_data, rowfound)
+                    await ctx.send("Timeout Waiting for Selection, Please use .pc to resume in the future.")
+                    await try_delete(sentassignment)
+                    return
+                else:
+                    if reaction.emoji.name == "Strength":
+                        character_data["Str"] = str(Statarray[x])
+                        character_data["Step"] += 10
 
-            await sentassignment.add_reaction(emoji_reroll)
+                    elif reaction.emoji.name == "Dexterity":
+                        character_data["Dex"] = str(Statarray[x])
+                        character_data["Step"] += 10
+
+                    elif reaction.emoji.name == "Constitution":
+                        character_data["Con"] = str(Statarray[x])
+                        character_data["Step"] += 10
+
+                    elif reaction.emoji.name == "Intelligence":
+                        character_data["Int"] = str(Statarray[x])
+                        character_data["Step"] += 10
+
+                    elif reaction.emoji.name == "Wisdom":
+                        character_data["Wis"] = str(Statarray[x])
+                        character_data["Step"] += 10
+
+                    elif reaction.emoji.name == "Charisma":
+                        character_data["Cha"] = str(Statarray[x])
+                        character_data["Step"] += 10
+
+                    await try_delete(sentassignment)
 
             if character_data["Step"] == 270:
-                await sentassignment.add_reaction(emoji_accept)
+                if character_data["Str"] == 0:
+                    character_data["Str"] = str(Statarray[x])
+
+                if character_data["Dex"] == 0:
+                    character_data["Dex"] = str(Statarray[x])
+
+                if character_data["Con"] == 0:
+                    character_data["Con"] = str(Statarray[x])
+
+                if character_data["Int"] == 0:
+                    character_data["Int"] = str(Statarray[x])
+
+                if character_data["Wis"] == 0:
+                    character_data["Wis"] = str(Statarray[x])
+
+                if character_data["Cha"] == 0:
+                    character_data["Cha"] = str(Statarray[x])
+
+                character_data["Step"] = 280
+
+            if character_data["Step"] == 280:
+                sendmsg1 = f"**Str:** {character_data['Str']}\n**Dex:** {character_data['Dex']}\n**Con:** {character_data['Con']}\n**Int:** {character_data['Int']}\n**Wis:** {character_data['Wis']}\n**Cha:** {character_data['Cha']}"
+                sendmsg = await ctx.send(sendmsg1)
+                await sendmsg.add_reaction(get_emoji(ctx, "Approved"))
+                await sendmsg.add_reaction(get_emoji(ctx, "Heroic"))
+
+                try:
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=lambda message: message.author == ctx.author)
+                except asyncio.TimeoutError:
+                    update_character_data(character_data, rowfound)
+                    await try_delete(sendmsg)
+                    return
+                else:
+                    if reaction.emoji.name == 'Approved':
+                        character_data["Step"] = 300
+                        update_character_data(character_data, rowfound)
+                    else:
+                        character_data["Step"] = 200
+                    await try_delete(sendmsg)
+
+        while 300 <= character_data["Step"] < 400:
+            candy = getallraces()
+
+
+
+
+
+
 
 
 

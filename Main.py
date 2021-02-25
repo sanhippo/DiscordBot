@@ -37,7 +37,7 @@ else:
 
 # case_insensitive=True is used as the commands are case sensitive by default
 
-cogs = ['cogs.basic', 'cogs.embed', 'cogs.dice', 'cogs.downtime', 'cogs.playercharacter']
+cogs = ['cogs.basic', 'cogs.embed', 'cogs.dice', 'cogs.playercharacter', 'cogs.session']
 
 @bot.event
 async def on_ready():
@@ -108,7 +108,7 @@ async def on_message(message):
             shorttermdata = []
             shorttermdata.append({"id": ctx.author.id, "count": len(ctx.message.content)})
             datalogdealy = True
-            await functions.waittime(6)
+            await functions.waittime(300)
             functions.update_rp_data(shorttermdata)
             datalogdealy = False
 

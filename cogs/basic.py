@@ -4,7 +4,6 @@ from datetime import datetime as d
 
 # New - The Cog class must extend the commands.Cog class
 class Basic(commands.Cog):
-
     def __init__(self, bot):
         self.bot = bot
 

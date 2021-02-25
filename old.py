@@ -13,7 +13,9 @@ running = 0
 
 gc = gspread.service_account()
 
-workbook = gc.open("Elantris Downtime")
+sworkbook = gc.open("Desolation - Session Join Request")
+
+
 
 Testing = credentials.testing
 
