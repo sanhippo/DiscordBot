@@ -15,6 +15,7 @@ gc = gspread.service_account()
 workbook = gc.open("Desolation - Session Join Request")
 sheet_activesession = workbook.worksheet("ActiveSessions")
 sheet_signups = workbook.worksheet("signups")
+sheet_joinlist = workbook.worksheet("Test")
 
 
 
@@ -42,6 +43,7 @@ class session(commands.Cog):
 		#  Add Code here to Delete
 
 		batch_get_signups = sheet_signups.get_all_records()
+		batch_get_joinlist = sheet_joinlist.get_all_records()
 		if len(batch_get_signups) > 0:
 			for signups in batch_get_signups:
 				if signups["Character"] == payload.member.nick:
