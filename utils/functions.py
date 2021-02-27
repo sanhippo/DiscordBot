@@ -430,6 +430,7 @@ async def user_from_id(ctx, the_id):
     await update_known_user(fetched_user)
     return fetched_user
 
+
 async def checkperm(ctx, crole, messageuser=True, message=None):
     """
     Checks To see if the user has a specific role or is a devloper
@@ -488,6 +489,7 @@ class Activity:  # Class for Activity Type Contains all the activity Information
         resultdict = dict(roll=count, description=description, category=category, log=log, calcval=calcval, hoursused=hoursused)
 
         self.results.append(resultdict)
+
 
 async def updateactivity(ctx, printmsg=None):
     """
@@ -617,4 +619,24 @@ def auth_and_chan(ctx):
 
 def utc_to_local(utc_dt):  # Convert UTC Time from Discord to EDT Time for use in the google sheet
     return utc_dt.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
+
+
+async def emojiconfirm(self, where, sendmsg=""):
+    sendmsg = sendmsg + f"\nReact with ✅ to accept\nReact with ❌ to reject."
+    msg = await where.member.send(sendmsg)
+    await msg.add_reaction("✅")
+    await msg.add_reaction("🚫")
+
+    def check(reaction, user):
+        return user.id == where.user_id and (reaction.emoji == "✅" or reaction.emoji == "🚫")
+
+    try:
+        reaction, user = await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
+    except asyncio.TimeoutError:
+        return -1
+    if reaction.emoji == "✅":
+        return True
+    if reaction.emoji == "🚫":
+        return False
+    return -2
 
