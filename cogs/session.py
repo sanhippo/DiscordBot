@@ -1,14 +1,16 @@
+import datetime as datetime
 from discord.ext import commands
-import datetime
+
 import d20
 import gspread
-from utils.functions import checkperm, get_emoji, try_delete, utc_to_local, get_positivity, emojiconfirm
+from utils.functions import checkperm, get_emoji, try_delete, utc_to_local, get_positivity, emojiconfirm, sendlong, emojimulti
 from gspread.models import Cell
 import asyncio
 from discord.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from discord.ext import commands
 from discord.ext.commands.errors import CommandInvokeError
 from credentials import testing
+import datetime
 
 
 gc = gspread.service_account()
@@ -16,11 +18,13 @@ workbook = gc.open("Desolation - Session Join Request")
 sheet_activesession = workbook.worksheet("ActiveSessions")
 sheet_signups = workbook.worksheet("signups")
 sheet_joinlist = workbook.worksheet("Test")
+sheet_characters = workbook.worksheet("Player Data")
 
 
 
 if testing == 1:
 	questid = 814117576804007976
+	botspam = 815606288498819094
 else:
 	questid = 690302160465952906
 
@@ -40,6 +44,13 @@ class session(commands.Cog):
 			return
 		if payload.channel_id != questid:
 			return
+
+		'''
+		Test Code Remove
+		'''
+		candy = ("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P")
+		await emojimulti(self, payload.member, candy, "Which Character?")
+
 		if payload.emoji.name == "🔚":
 			developer = False
 			dm = False
@@ -91,13 +102,45 @@ class session(commands.Cog):
 			if not foundsession:
 				await payload.member.send("You do not have permission to cancel this post. If you believe this is an error message a Developer. ")
 				return
-
-
+			choice = await emojiconfirm(self, payload, "Would you like to delete the posting?")
+			if choice == -1:
+				await payload.member.send("Timeout. ReReact to start again.")
+				user = self.bot.get_user(payload.user_id)
+				await message.remove_reaction(payload.emoji, user)
+				return
+			elif not choice:
+				await payload.member.send("Message will not be deleted.")
+				user = self.bot.get_user(payload.user_id)
+				await message.remove_reaction(payload.emoji, user)
+				return
+			elif choice:
+				user = self.bot.get_user(payload.user_id)
+				await try_delete(message)
+				await payload.member.send("Message Deleted")
+			else:
+				await payload.member.send("Error of some sort. Not handled")
+				user = self.bot.get_user(payload.user_id)
+				await message.remove_reaction(payload.emoji, user)
+				return
+			return
 		if payload.emoji.name == "❔":  # Get Information about Active Session
 			channel = self.bot.get_channel(payload.channel_id)
 			message = await channel.fetch_message(payload.message_id)
 			user = self.bot.get_user(payload.user_id)
 			await message.remove_reaction(payload.emoji, user)
+			developer = False
+			dm = False
+			for role in payload.member.roles:
+				if role.name == "Developer":
+					developer = True
+					break
+				elif role.name == "DM":
+					dm = True
+				elif role.name == "Trial DM":
+					dm = True
+			if not (developer or dm):
+				msg = await payload.member.send("You do not have permission to get results of this post. If you believe this is an error message a Developer.")
+				return
 			batch_get_joinlist = sheet_joinlist.get_all_records()
 			if len(batch_get_joinlist) < 1:
 				await payload.member.send("An Error has been detected. No Session's Found")
@@ -113,32 +156,69 @@ class session(commands.Cog):
 			if sessionmatch["Signup Count"] == 0:
 				await payload.member.send("There are no players signed up yet.")
 			elif sessionmatch["Signup Count"] == 1:
-
+				characterssplit = sessionmatch["Character's Chosen"]
+				levelssplit = sessionmatch["Level's Chosen"]
+				discordsplit = sessionmatch["Discord ID's Chosen"]
+				cast = f"__Cast__\n**Player:** <@!{discordsplit}> | **Character:** {characterssplit} | **Level:** {levelssplit}\n"
 			else:
+				characterssplit = sessionmatch["Character's Chosen"].split(",")
+				playerssplit = sessionmatch["Player's Chosen"].split(",")
+				levelssplit = sessionmatch["Level's Chosen"].split(",")
+				discordsplit = sessionmatch["Discord ID's Chosen"].split(",")
+				cast = "__Cast__\n"
+				x = 0
+				for x in range(0, len(characterssplit)):
+					cast = cast + f"**Player:** <@!{discordsplit[x]}> | **Character:** {characterssplit[x]} | **Level:** {levelssplit[x]}\n"
+					x += 1
 
 			experiencesplit = sessionmatch["Experience Cap"].split(",")
 			goldsplit = sessionmatch["Gold Cap"].split(",")
-
-
-
-
-
-
-
-
-
-
-		#  Add Code here to Delete
-
+			chan_botspam = self.bot.get_channel(botspam)
+			x = 0
+			xpgold = "__Xp/Gold Cap Per Session Not Per Person__\n"
+			for x in range(0, len(experiencesplit)):
+				if x == 0:
+					xpgold = xpgold + "**Easy:** "
+				elif x == 1:
+					xpgold = xpgold + "**Normal:** "
+				elif x == 2:
+					xpgold = xpgold + "**Hard:** "
+				else:
+					xpgold = xpgold + "**Deadly:** "
+				xpgold = xpgold + f"XP: {experiencesplit[x]} |  Gold: {goldsplit[x]}\n"
+			datentime = "__Date/Time__\n" + sessionmatch["Date/Time"] + "\n"
+			hostid = sessionmatch["HostID"]
+			host = f"__Host__\n <@!{hostid}> \n"
+			signupsallowed = f"__Allowed Slots__\n{sessionmatch['Player Count']} \n"
+			sessionassignment = f"__Session__\n{sessionmatch['Assignment']} \n"
+			grace = f"__Grace Periods Ends__\n{sessionmatch['Grace']} \n"
+			sendmsg = sessionassignment + datentime + grace + host + signupsallowed + xpgold + cast
+			await sendlong(chan_botspam, sendmsg)
+			return
+		'''
+		This Section is for actual signups. 
+		'''
 		batch_get_signups = sheet_signups.get_all_records()
+		batch_get_characters = sheet_characters.get_all_records()
+		if len(batch_get_characters) > 0:
+			payload.member.send("Error No members Detected Report to a Developer")
+			return
+		matchingcharacters = []
+		for character in batch_get_characters:
+			if character["DiscordID"] == payload.message_id:
+				matchingcharacters.append(character)
+		if len(matchingcharacters) == 0:
+			await payload.member.send("You currently have no character's setup. Message a Developer for Help.")
+		if len(matchingcharacters) > 1:
+			return
 		if len(batch_get_signups) > 0:
 			for signups in batch_get_signups:
 				if signups["DiscordID"] == payload.user_id:
 					if signups["MessageID"] == payload.message_id:
-						await payload.member.send(f"You are already signed up for session {payload.emoji.name}.")
+						await payload.member.send(f"You are already signed up for session {signups['Assignment']}.")
 						return
 		timeposted = datetime.datetime.now()
-		sheet_signups.append_row([f"{timeposted.month}/{timeposted.day}/{timeposted.year} {timeposted.hour}:{timeposted.minute}:{timeposted.second}.{timeposted.microsecond}", payload.emoji.name, payload.member.nick, str(payload.message_id), str(payload.user_id)], value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS", table_range="A1")
+		sheet_signups.append_row([f"{timeposted.month}/{timeposted.day}/{timeposted.year} {timeposted.hour}:{timeposted.minute}:{timeposted.second}.{timeposted.microsecond}", payload.emoji.name, payload.member.nick, str(payload.message_id), str(payload.user_id), 1], value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS", table_range="A1")
 		await payload.member.send(f"You have signed up for session {payload.emoji.name}")
 		return
 

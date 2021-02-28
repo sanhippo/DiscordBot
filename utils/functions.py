@@ -640,3 +640,106 @@ async def emojiconfirm(self, where, sendmsg=""):
         return False
     return -2
 
+
+async def sendlong(where, message):
+    length = len(message)
+    x = 0
+    length = length
+    if length > 1999:
+        finished = False
+        while not finished:
+            if x + 250 < length:
+                findnewline = message[x:x+1999].rfind("\n")
+                if findnewline == -1:
+                    await where.send(message[x:x+1999])
+                    x = x + 1999
+                else:
+                    await where.send(message[x:x+findnewline])
+                    x = x + findnewline
+            else:
+                await where.send(message[x:length])
+                finished = True
+    else:
+        await where.send(message)
+    return
+
+
+async def emojimulti(self, where, choices, title=""):
+    x = 0
+    selected = None
+    sendstringtitle = f"**{title}**\n__React with your choice.__\n"
+    msg = await where.send("Message Being Edited Please Wait")
+    while selected is None:
+        if len(choices) > x:
+            sendstringmsg = f":one: {choices[x]}\n"
+        if len(choices) > x+1:
+            sendstringmsg = sendstringmsg + f":two: {choices[x+1]}\n"
+        if len(choices) > x+2:
+            sendstringmsg = sendstringmsg + f":three: {choices[x+2]}\n"
+        if len(choices) > x+3:
+            sendstringmsg = sendstringmsg + f":four: {choices[x+3]}\n"
+        if len(choices) > x+4:
+            sendstringmsg = sendstringmsg + f":five: {choices[x+4]}\n"
+        if len(choices) > x+5:
+            sendstringmsg = sendstringmsg + f":six: {choices[x+5]}\n"
+        if len(choices) > x+6:
+            sendstringmsg = sendstringmsg + f":seven: {choices[x+6]}\n"
+        if len(choices) > x+7:
+            sendstringmsg = sendstringmsg + f":eight: {choices[x+7]}\n"
+        if len(choices) > x+8:
+            sendstringmsg = sendstringmsg + f":nine: {choices[x+8]}\n"
+
+        msgcontent = sendstringtitle + sendstringmsg
+        await msg.edit(content=msgcontent)
+
+        if len(choices) >= x:
+            await msg.add_reaction('1️⃣')
+        if len(choices) >= x+1:
+            await msg.add_reaction('2️⃣')
+        if len(choices) >= x+2:
+            await  msg.add_reaction('3️⃣')
+        if len(choices) >= x+3:
+            await msg.add_reaction("'4️⃣'")
+        if len(choices) >= x+4:
+            await msg.add_reaction("'5️⃣'")
+        if len(choices) >= x+5:
+            await msg.add_reaction('6️⃣')
+        if len(choices) >= x+6:
+            await msg.add_reaction('7️⃣')
+        if len(choices) >= x+7:
+            await msg.add_reaction('8️⃣')
+        if len(choices) >= x+8:
+            await msg.add_reaction('9️⃣')
+        if x > 0:
+            await msg.add_reaction("⬅")
+        if len(choice) > x:
+            await msg.add_reaction("➡")
+
+        def check(reaction, user):
+            return user.id == where.user_id
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
+        except asyncio.TimeoutError:
+            return -1
+        if reaction.name == '1️⃣':
+            return choices[x]
+        if reaction.name == '2️⃣':
+            return choices[x+1]
+        if reaction.name == '3️⃣':
+            return choices[x+2]
+        if reaction.name == '4️⃣':
+            return choices[x+3]
+        if reaction.name == '5️⃣':
+            return choices[x+4]
+        if reaction.name == '6️⃣':
+            return choices[x+5]
+        if reaction.name == '7️⃣':
+            return choices[x+6]
+        if reaction.name == '9️⃣':
+            return choices[x+7]
+        if reaction.name == "⬅":
+            x = x - 8
+        if reaction.name == "➡":
+            x = x + 8
+    return -2
