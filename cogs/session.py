@@ -48,8 +48,8 @@ class session(commands.Cog):
 		'''
 		Test Code Remove
 		'''
-		candy = ("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P")
-		await emojimulti(self, payload.member, candy, "Which Character?")
+		candy = ("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z")
+		await emojimulti(self, payload.member, candy, "Which Character?", private=True)
 
 		if payload.emoji.name == "🔚":
 			developer = False

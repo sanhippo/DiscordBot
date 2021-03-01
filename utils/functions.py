@@ -664,11 +664,23 @@ async def sendlong(where, message):
     return
 
 
-async def emojimulti(self, where, choices, title=""):
+async def emojimulti(self, where, choices, title="", private=False):
     x = 0
     selected = None
     sendstringtitle = f"**{title}**\n__React with your choice.__\n"
-    msg = await where.send("Message Being Edited Please Wait")
+    if not private:
+        msg = await where.send("Message Being Edited Please Wait")
+    one = False
+    two = False
+    three = False
+    four = False
+    five = False
+    six = False
+    seven = False
+    eight = False
+    nine = False
+    left = False
+    right = False
     while selected is None:
         if len(choices) > x:
             sendstringmsg = f":one: {choices[x]}\n"
@@ -688,58 +700,122 @@ async def emojimulti(self, where, choices, title=""):
             sendstringmsg = sendstringmsg + f":eight: {choices[x+7]}\n"
         if len(choices) > x+8:
             sendstringmsg = sendstringmsg + f":nine: {choices[x+8]}\n"
+        if x > 0:
+            sendstringmsg = sendstringmsg + "⬅ Previous Page\n"
+        if len(choices) > x+9:
+            sendstringmsg = sendstringmsg + "➡ Next Page\n"
 
         msgcontent = sendstringtitle + sendstringmsg
-        await msg.edit(content=msgcontent)
 
-        if len(choices) >= x:
+        if private:
+            msg = await where.send(msgcontent)
+        else:
+            await msg.edit(content=msgcontent)
+
+        if len(choices) > x:
             await msg.add_reaction('1️⃣')
-        if len(choices) >= x+1:
+            first = True
+        else:
+            if first and not private:
+                await msg.remove_reaction('1️⃣', self.bot)
+                first = False
+        if len(choices) > x+1:
             await msg.add_reaction('2️⃣')
-        if len(choices) >= x+2:
+            second = True
+        else:
+            if second and not private:
+                await msg.remove_reaction('2️⃣', self.bot)
+                second = False
+        if len(choices) > x+2:
             await  msg.add_reaction('3️⃣')
-        if len(choices) >= x+3:
-            await msg.add_reaction("'4️⃣'")
-        if len(choices) >= x+4:
-            await msg.add_reaction("'5️⃣'")
-        if len(choices) >= x+5:
+            third = True
+        else:
+            if third and not private:
+                await msg.remove_reaction('3️⃣', self.bot)
+                third = False
+        if len(choices) > x+3:
+            await msg.add_reaction('4️⃣')
+            four = True
+        else:
+            if four and not private:
+                await msg.remove_reaction('4️⃣', self.bot)
+                four = False
+        if len(choices) > x+4:
+            await msg.add_reaction('5️⃣')
+            five = True
+        else:
+            if five and not private:
+                await msg.remove_reaction('5️⃣', self.bot)
+                five = False
+        if len(choices) > x+5:
             await msg.add_reaction('6️⃣')
-        if len(choices) >= x+6:
+            six = True
+        else:
+            if six and not private:
+                await msg.remove_reaction('6️⃣', self.bot)
+                six = False
+        if len(choices) > x+6:
             await msg.add_reaction('7️⃣')
-        if len(choices) >= x+7:
+            seven = True
+        else:
+            if seven and not private:
+                await msg.remove_reaction('7️⃣', self.bot)
+                seven
+        if len(choices) > x+7:
             await msg.add_reaction('8️⃣')
-        if len(choices) >= x+8:
+            eight = True
+        else:
+            if eight and not private:
+                await msg.remove_reaction('8️⃣', self.bot)
+                eight = False
+        if len(choices) > x+8:
             await msg.add_reaction('9️⃣')
+            nine = True
+        else:
+            if nine and not private:
+                await msg.remove_reaction('9️⃣', self.bot)
+                nine = False
         if x > 0:
             await msg.add_reaction("⬅")
-        if len(choice) > x:
+            left = True
+        else:
+            if left and not private:
+                await msg.remove_reaction('9️⃣', self.bot)
+        if len(choices) > x+9:
             await msg.add_reaction("➡")
+            right = True
+        else:
+            if right and not private:
+                await msg.remove_reaction("➡", self.bot)
+                right = False
 
         def check(reaction, user):
-            return user.id == where.user_id
+            return user.id == where.id
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
         except asyncio.TimeoutError:
             return -1
-        if reaction.name == '1️⃣':
+        if not private:
+            await msg.remove_reaction(reaction.emoji, user)
+        if reaction.emoji == '1️⃣':
             return choices[x]
-        if reaction.name == '2️⃣':
+        if reaction.emoji == '2️⃣':
             return choices[x+1]
-        if reaction.name == '3️⃣':
+        if reaction.emoji == '3️⃣':
             return choices[x+2]
-        if reaction.name == '4️⃣':
+        if reaction.emoji == '4️⃣':
             return choices[x+3]
-        if reaction.name == '5️⃣':
+        if reaction.emoji == '5️⃣':
             return choices[x+4]
-        if reaction.name == '6️⃣':
+        if reaction.emoji == '6️⃣':
             return choices[x+5]
-        if reaction.name == '7️⃣':
+        if reaction.emoji == '7️⃣':
             return choices[x+6]
-        if reaction.name == '9️⃣':
+        if reaction.emoji == '9️⃣':
             return choices[x+7]
-        if reaction.name == "⬅":
-            x = x - 8
-        if reaction.name == "➡":
-            x = x + 8
+        if reaction.emoji == "⬅":
+            x = x - 9
+        if reaction.emoji == "➡":
+            x = x + 9
     return -2
