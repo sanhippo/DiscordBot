@@ -48,8 +48,9 @@ class session(commands.Cog):
 		'''
 		Test Code Remove
 		'''
-		candy = ("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z")
-		await emojimulti(self, payload.member, candy, "Which Character?", private=True)
+		candy = ("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V")
+		chan_botspam = self.bot.get_channel(botspam)
+		choice = await emojimulti(self, chan_botspam, candy, "Which Character?", who=payload.user_id)
 
 		if payload.emoji.name == "🔚":
 			developer = False
