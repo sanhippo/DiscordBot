@@ -665,7 +665,7 @@ async def sendlong(where, message):
 	return
 
 
-async def emojimulti(self, where, choices, title="", who=None, delete=True):
+async def emojimulti(self, where, choices, title="", who=None, delete=True, multi=False, time=120):
 	"""
 
 	:param self: Context for the bot
@@ -681,9 +681,13 @@ async def emojimulti(self, where, choices, title="", who=None, delete=True):
 	if len(choices) == 1:
 		return choices[0]
 	x = 0
+	multichoice = []
 	selected = None
 	sendstringtitle = f"**{title}**\n__React with your choice.__\n"
 	msg = await where.send("Message Being Edited Please Wait")
+	if multi:
+		sendstringmulti = "Multi Selections - Selections Will update here."
+		multimsg = await where.send("Message being edited please wait")
 	one = False
 	two = False
 	three = False
@@ -695,6 +699,7 @@ async def emojimulti(self, where, choices, title="", who=None, delete=True):
 	nine = False
 	left = False
 	right = False
+
 	while selected is None:
 		if len(choices) > x:
 			sendstringmsg = f":one: {choices[x]}\n"
@@ -718,11 +723,23 @@ async def emojimulti(self, where, choices, title="", who=None, delete=True):
 			sendstringmsg = sendstringmsg + "⬅ Previous Page\n"
 		if len(choices) > x+9:
 			sendstringmsg = sendstringmsg + "➡ Next Page\n"
+		if multi:
+			await msg.add_reaction('✅')
+			await msg.add_reaction('🚫')
 
-		msgcontent = sendstringtitle + sendstringmsg
-
+		if multi:
+			await msg.add_reaction('✅')
+			await msg.add_reaction('🚫')
+			msgcontent = sendstringtitle + "✅: Accept Selected\n🚫 Accept Selected with Manual Entry's\n" + sendstringmsg
+		else:
+			msgcontent = sendstringtitle + sendstringmsg
 
 		await msg.edit(content=msgcontent)
+		if multi:
+			multimsgcontent = sendstringmulti
+			for selections in multichoice:
+				multimsgcontent = multimsgcontent + "\n" + selections
+			await multimsg.edit(content=multimsgcontent)
 
 		if len(choices) > x:
 			if not one:
@@ -813,38 +830,86 @@ async def emojimulti(self, where, choices, title="", who=None, delete=True):
 				right = False
 
 		def check(reaction, user):
-			return user.id == who and reaction.message.channel.id == where.id
+			if user.id == who and reaction.message.channel.id == where.id:
+				return True
+			return False
+
 
 		try:
-			reaction, user = await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
+			reaction, user = await self.bot.wait_for('reaction_add', timeout=time, check=check)
 		except asyncio.TimeoutError:
-			return -1
+			if multi:
+				return -1, -1
+			else:
+				return -1
 		await msg.remove_reaction(reaction.emoji, user)
-		if reaction.emoji == '1️⃣':
-			selected = choices[x]
-		elif reaction.emoji == '2️⃣':
-			selected = choices[x+1]
-		elif reaction.emoji == '3️⃣':
-			selected = choices[x+2]
-		elif reaction.emoji == '4️⃣':
-			selected = choices[x+3]
-		elif reaction.emoji == '5️⃣':
-			selected = choices[x+4]
-		elif reaction.emoji == '6️⃣':
-			selected = choices[x+5]
-		elif reaction.emoji == '7️⃣':
-			selected = choices[x+6]
-		elif reaction.emoji == '8️⃣':
-			selected = choices[x+7]
-		elif reaction.emoji == '9️⃣':
-			selected = choices[x+8]
-		elif reaction.emoji == "⬅":
-			x = x - 9
-		elif reaction.emoji == "➡":
-			x = x + 9
+		if not multi:
+			if reaction.emoji == '1️⃣':
+				selected = choices[x]
+			elif reaction.emoji == '2️⃣':
+				selected = choices[x+1]
+			elif reaction.emoji == '3️⃣':
+				selected = choices[x+2]
+			elif reaction.emoji == '4️⃣':
+				selected = choices[x+3]
+			elif reaction.emoji == '5️⃣':
+				selected = choices[x+4]
+			elif reaction.emoji == '6️⃣':
+				selected = choices[x+5]
+			elif reaction.emoji == '7️⃣':
+				selected = choices[x+6]
+			elif reaction.emoji == '8️⃣':
+				selected = choices[x+7]
+			elif reaction.emoji == '9️⃣':
+				selected = choices[x+8]
+			elif reaction.emoji == "⬅":
+				x = x - 9
+			elif reaction.emoji == "➡":
+				x = x + 9
+		else:
+			y = None
+			if reaction.emoji == '1️⃣':
+				y = 0
+			elif reaction.emoji == '2️⃣':
+				y = 1
+			elif reaction.emoji == '3️⃣':
+				y = 2
+			elif reaction.emoji == '4️⃣':
+				y = 3
+			elif reaction.emoji == '5️⃣':
+				y = 4
+			elif reaction.emoji == '6️⃣':
+				y = 5
+			elif reaction.emoji == '7️⃣':
+				y = 6
+			elif reaction.emoji == '8️⃣':
+				y = 7
+			elif reaction.emoji == '9️⃣':
+				y = 8
+			elif reaction.emoji == "⬅":
+				x = x - 9
+			elif reaction.emoji == "➡":
+				x = x + 9
+			elif reaction.emoji == "✅":
+				selected = multichoice
+				manual = False
+			elif reaction.emoji == "🚫":
+				selected = multichoice
+				manual = True
+			if y is not None:
+				if choices[x+y] in multichoice:
+					multichoice.remove(choices[x+y])
+				else:
+					multichoice.append(choices[x+y])
+
 	if delete:
 		await try_delete(msg)
-	return selected
+		if multi:
+			await try_delete(multimsg)
+	if multi:
+		return selected, manual
+	else:
+		return selected
 
 
 def getcharacters(discordid, dead=False, what="All"):

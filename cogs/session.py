@@ -58,8 +58,8 @@ class session(commands.Cog):
 				msg = await payload.member.send(
 					"You do not have permission to cancel this post. If you believe this is an error message a Developer.")
 				return
-			batch_get_activesessions = sheet_activesession.get_all_records()
-			if len(batch_get_activesessions) < 1:
+			batch_active_session = sheet_activesession.get_all_records()
+			if len(batch_active_session) < 1:
 				choice = await emojiconfirm(self, payload, "No Session's Found. Would you like to delete the posting?")
 				if choice == -1:
 					await payload.member.send("Timeout. ReReact to start again.")
@@ -75,7 +75,7 @@ class session(commands.Cog):
 				return
 			foundsession = False
 			row = 2
-			for sessions in batch_get_activesessions:
+			for sessions in batch_active_session:
 				if sessions["MessageID"] == payload.message_id:
 					if sessions["HostID"] == payload.user_id:
 						foundsession = True
@@ -88,7 +88,47 @@ class session(commands.Cog):
 				await payload.member.send(
 					"You do not have permission to cancel this post. If you believe this is an error message a Developer. ")
 				return
-			choice = await emojiconfirm(self, payload, "Would you like to delete the posting?")
+			chan_botspamdm = self.bot.get_channel(botspamdm)
+			choice = await emojimulti(self, chan_botspamdm, ("Yes", "No"), "Do you want to Start the process of Finishing a Session?\nYou Should have XP / Gold / Players and items rewarded ready before.", payload.user_id)
+			if choice == -1:
+				await chan_botspamdm.send("Timeout. ReReact to start again.")
+				return
+			elif not choice:
+				await chan_botspamdm.send("Message will not be deleted.")
+				return
+			elif choice:
+				pass
+			else:
+				await chan_botspamdm.send("Unknown Error. Message Developer. Or Don't add your own reactions....")
+
+			batch_session_details =sheet_joinlist.get_all_records()
+
+			for sessiondetails in batch_session_details:
+				if sessiondetails["MessageID"] == payload.message_id:
+					break
+
+			'''
+			This is the section you were working on.
+			'''
+
+			if sessiondetails["Signup Count"] == 0:
+				await chan_botspamdm.send("There are no players signed up yet.")
+			elif sessiondetails["Signup Count"] == 1:
+				characterssplit = sessiondetails["Character's Chosen"]
+				levelssplit = sessiondetails["Level's Chosen"]
+				discordsplit = sessiondetails["Discord ID's Chosen"]
+				cast = f"__Cast__\n**Player:** <@!{discordsplit}> | **Character:** {characterssplit} | **Level:** {levelssplit}\n"
+			else:
+				characterssplit = sessiondetails["Character's Chosen"].split(",")
+				levelssplit = sessiondetails["Level's Chosen"].split(",")
+				discordsplit = sessiondetails["Discord ID's Chosen"].split(",")
+				cast = "__Cast__\n"
+				x = 0
+				for x in range(0, len(characterssplit)):
+					cast = cast + f"**Player:** <@!{discordsplit[x]}> | **Character:** {characterssplit[x]} | **Level:** {levelssplit[x]}\n"
+					x += 1
+
+			choice = await emojimulti(self, chan_botspamdm, ("Yes", "No"), "Do you want to Start the process of Finishing a Session?\nYou Should have XP / Gold / Players and items rewarded ready before.", payload.user_id)
 			if choice == -1:
 				await payload.member.send("Timeout. ReReact to start again.")
 				return
@@ -96,13 +136,24 @@ class session(commands.Cog):
 				await payload.member.send("Message will not be deleted.")
 				return
 			elif choice:
-				sheet_activesession.delete_row(row)
-				await try_delete(message)
-				await payload.member.send("Message Deleted")
+				pass
 			else:
-				await payload.member.send("Error of some sort. Not handled")
-				return
+				await payload.member.send("Unknown Error. Message Developer. Or Don't add your own reactions....")
+
+
+
+
+
+
+
+
+
+
+			sheet_activesession.delete_row(row)
+			await try_delete(message)
+			await payload.member.send("Message Deleted")
 			return
+
 		if payload.emoji.name == "❔":  # Get Information about Active Session
 			developer = False
 			dm = False
@@ -139,7 +190,6 @@ class session(commands.Cog):
 				cast = f"__Cast__\n**Player:** <@!{discordsplit}> | **Character:** {characterssplit} | **Level:** {levelssplit}\n"
 			else:
 				characterssplit = sessionmatch["Character's Chosen"].split(",")
-				playerssplit = sessionmatch["Player's Chosen"].split(",")
 				levelssplit = sessionmatch["Level's Chosen"].split(",")
 				discordsplit = sessionmatch["Discord ID's Chosen"].split(",")
 				cast = "__Cast__\n"
