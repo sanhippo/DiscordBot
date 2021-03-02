@@ -1,17 +1,10 @@
-import datetime as datetime
-from discord.ext import commands
-
-import d20
 import gspread
-from utils.functions import checkperm, get_emoji, try_delete, utc_to_local, get_positivity, emojiconfirm, sendlong, emojimulti
-from gspread.models import Cell
+from utils.functions import checkperm, get_emoji, try_delete, utc_to_local, emojiconfirm, sendlong, emojimulti, \
+	getcharacters
 import asyncio
-from discord.errors import Forbidden, HTTPException, InvalidArgument, NotFound
 from discord.ext import commands
-from discord.ext.commands.errors import CommandInvokeError
 from credentials import testing
 import datetime
-
 
 gc = gspread.service_account()
 workbook = gc.open("Desolation - Session Join Request")
@@ -20,15 +13,16 @@ sheet_signups = workbook.worksheet("signups")
 sheet_joinlist = workbook.worksheet("Test")
 sheet_characters = workbook.worksheet("Player Data")
 
-
-
 if testing == 1:
-	questid = 814117576804007976
-	botspam = 815606288498819094
+	questid = 816341640133869568
+	botspamdm = 815606288498819094
+	botspamplayer = 816351222013100072
 else:
 	questid = 690302160465952906
 
-emojilist = ("🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹", "🇺", "🇻", "🇼", "🇽", "🇾", "🇿")
+emojilist = (
+	"🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸",
+	"🇹", "🇺", "🇻", "🇼", "🇽", "🇾", "🇿")
 
 
 # New - The Cog class must extend the commands.Cog class
@@ -37,7 +31,6 @@ class session(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
-
 	@commands.Cog.listener()
 	async def on_raw_reaction_add(self, payload):
 		if payload.user_id == self.bot.user.id:
@@ -45,12 +38,10 @@ class session(commands.Cog):
 		if payload.channel_id != questid:
 			return
 
-		'''
-		Test Code Remove
-		'''
-		candy = ("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V")
-		chan_botspam = self.bot.get_channel(botspam)
-		choice = await emojimulti(self, chan_botspam, candy, "Which Character?", who=payload.user_id)
+		channel = self.bot.get_channel(payload.channel_id)
+		message = await channel.fetch_message(payload.message_id)
+		user = self.bot.get_user(payload.user_id)
+		await message.remove_reaction(payload.emoji, user)
 
 		if payload.emoji.name == "🔚":
 			developer = False
@@ -64,34 +55,26 @@ class session(commands.Cog):
 				elif role.name == "Trial DM":
 					dm = True
 			if not (developer or dm):
-				msg = await payload.member.send("You do not have permission to cancel this post. If you believe this is an error message a Developer.")
+				msg = await payload.member.send(
+					"You do not have permission to cancel this post. If you believe this is an error message a Developer.")
 				return
 			batch_get_activesessions = sheet_activesession.get_all_records()
-			channel = self.bot.get_channel(payload.channel_id)
-			message = await channel.fetch_message(payload.message_id)
 			if len(batch_get_activesessions) < 1:
 				choice = await emojiconfirm(self, payload, "No Session's Found. Would you like to delete the posting?")
 				if choice == -1:
 					await payload.member.send("Timeout. ReReact to start again.")
-					user = self.bot.get_user(payload.user_id)
-					await message.remove_reaction(payload.emoji, user)
 					return
 				elif not choice:
 					await payload.member.send("Message will not be deleted.")
-					user = self.bot.get_user(payload.user_id)
-					await message.remove_reaction(payload.emoji, user)
 					return
 				elif choice:
-					user = self.bot.get_user(payload.user_id)
-					await try_delete(message)
 					await payload.member.send("Message Deleted")
 				else:
 					await payload.member.send("Error of some sort. Not handled")
-					user = self.bot.get_user(payload.user_id)
-					await message.remove_reaction(payload.emoji, user)
 					return
 				return
 			foundsession = False
+			row = 2
 			for sessions in batch_get_activesessions:
 				if sessions["MessageID"] == payload.message_id:
 					if sessions["HostID"] == payload.user_id:
@@ -100,35 +83,27 @@ class session(commands.Cog):
 					elif developer:
 						foundsession = True
 						break
+				row += 1
 			if not foundsession:
-				await payload.member.send("You do not have permission to cancel this post. If you believe this is an error message a Developer. ")
+				await payload.member.send(
+					"You do not have permission to cancel this post. If you believe this is an error message a Developer. ")
 				return
 			choice = await emojiconfirm(self, payload, "Would you like to delete the posting?")
 			if choice == -1:
 				await payload.member.send("Timeout. ReReact to start again.")
-				user = self.bot.get_user(payload.user_id)
-				await message.remove_reaction(payload.emoji, user)
 				return
 			elif not choice:
 				await payload.member.send("Message will not be deleted.")
-				user = self.bot.get_user(payload.user_id)
-				await message.remove_reaction(payload.emoji, user)
 				return
 			elif choice:
-				user = self.bot.get_user(payload.user_id)
+				sheet_activesession.delete_row(row)
 				await try_delete(message)
 				await payload.member.send("Message Deleted")
 			else:
 				await payload.member.send("Error of some sort. Not handled")
-				user = self.bot.get_user(payload.user_id)
-				await message.remove_reaction(payload.emoji, user)
 				return
 			return
 		if payload.emoji.name == "❔":  # Get Information about Active Session
-			channel = self.bot.get_channel(payload.channel_id)
-			message = await channel.fetch_message(payload.message_id)
-			user = self.bot.get_user(payload.user_id)
-			await message.remove_reaction(payload.emoji, user)
 			developer = False
 			dm = False
 			for role in payload.member.roles:
@@ -140,7 +115,8 @@ class session(commands.Cog):
 				elif role.name == "Trial DM":
 					dm = True
 			if not (developer or dm):
-				msg = await payload.member.send("You do not have permission to get results of this post. If you believe this is an error message a Developer.")
+				msg = await payload.member.send(
+					"You do not have permission to get results of this post. If you believe this is an error message a Developer.")
 				return
 			batch_get_joinlist = sheet_joinlist.get_all_records()
 			if len(batch_get_joinlist) < 1:
@@ -174,7 +150,7 @@ class session(commands.Cog):
 
 			experiencesplit = sessionmatch["Experience Cap"].split(",")
 			goldsplit = sessionmatch["Gold Cap"].split(",")
-			chan_botspam = self.bot.get_channel(botspam)
+			chan_botspamdm = self.bot.get_channel(botspamdm)
 			x = 0
 			xpgold = "__Xp/Gold Cap Per Session Not Per Person__\n"
 			for x in range(0, len(experiencesplit)):
@@ -194,37 +170,36 @@ class session(commands.Cog):
 			sessionassignment = f"__Session__\n{sessionmatch['Assignment']} \n"
 			grace = f"__Grace Periods Ends__\n{sessionmatch['Grace']} \n"
 			sendmsg = sessionassignment + datentime + grace + host + signupsallowed + xpgold + cast
-			await sendlong(chan_botspam, sendmsg)
+			await sendlong(chan_botspamdm, sendmsg)
 			return
+
 		'''
 		This Section is for actual signups. 
 		'''
-		batch_get_signups = sheet_signups.get_all_records()
-		batch_get_characters = sheet_characters.get_all_records()
-		if len(batch_get_characters) > 0:
-			payload.member.send("Error No members Detected Report to a Developer")
-			return
-		matchingcharacters = []
-		for character in batch_get_characters:
-			if character["DiscordID"] == payload.message_id:
-				matchingcharacters.append(character)
-		if len(matchingcharacters) == 0:
+
+		chan_botspamplayer = self.bot.get_channel(botspamplayer)
+		characters = getcharacters(int(payload.user_id), what="Name")
+		if characters is None:
 			await payload.member.send("You currently have no character's setup. Message a Developer for Help.")
-		if len(matchingcharacters) > 1:
 			return
+		character = await emojimulti(self, chan_botspamplayer, characters, "Which Character?", who=payload.user_id)
+		batch_get_signups = sheet_signups.get_all_records()
 		if len(batch_get_signups) > 0:
 			for signups in batch_get_signups:
 				if signups["DiscordID"] == payload.user_id:
 					if signups["MessageID"] == payload.message_id:
-						await payload.member.send(f"You are already signed up for session {signups['Assignment']}.")
+						await payload.member.send(
+							f"You are already signed up for session {signups['Assignment']} with character {signups['Character']} at {signups['Timestamp']}.")
 						return
 		timeposted = datetime.datetime.now()
-		sheet_signups.append_row([f"{timeposted.month}/{timeposted.day}/{timeposted.year} {timeposted.hour}:{timeposted.minute}:{timeposted.second}.{timeposted.microsecond}", payload.emoji.name, payload.member.nick, str(payload.message_id), str(payload.user_id), 1], value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS", table_range="A1")
-		await payload.member.send(f"You have signed up for session {payload.emoji.name}")
+		sheet_signups.append_row([
+			f"{timeposted.month}/{timeposted.day}/{timeposted.year} {timeposted.hour}:{timeposted.minute}:{timeposted.second}.{timeposted.microsecond}",
+			payload.emoji.name, character, str(payload.message_id),
+			str(payload.user_id), 1], value_input_option='USER_ENTERED',
+			insert_data_option="INSERT_ROWS", table_range="A1")
+		await payload.member.send(
+			f"You have signed up for session {payload.emoji.name} with character {character}.")
 		return
-
-
-
 
 	# Define a new command
 	@commands.command(
@@ -235,7 +210,8 @@ class session(commands.Cog):
 	)
 	async def NSCommand(self, ctx, *, information):
 		if not await checkperm(ctx, "DM", messageuser=False):
-			if not await checkperm(ctx, "Trial DM", message="You must have the Trial DM or DM Role to use this command"):
+			if not await checkperm(ctx, "Trial DM",
+									message="You must have the Trial DM or DM Role to use this command"):
 				return
 		if not ctx.channel.category.name == "Quest":
 			await ctx.author.send("Needs to be posted in the #Quest Category in the new channel")
@@ -245,46 +221,40 @@ class session(commands.Cog):
 			return
 		datestart = information.find("Date=")
 		dateend = information.find("\n", datestart)
-		date = information[datestart+5:dateend]
+		date = information[datestart + 5:dateend]
 		whostart = information.find("Who=")
 		whoend = information.find("\n", whostart)
-		who = information[whostart+4:whoend]
+		who = information[whostart + 4:whoend]
 		programstart = information.find("Program=")
 		programend = information.find("\n", programstart)
-		program = information[programstart+8:programend]
+		program = information[programstart + 8:programend]
 		timestart = information.find("Time=")
 		timeend = information.find("\n", timestart)
-		time = information[timestart+5:timeend]
+		time = information[timestart + 5:timeend]
 		descriptionstart = information.find("Desc=")
 		descriptionend = len(information)
-		description = information[descriptionstart+5:descriptionend]
+		description = information[descriptionstart + 5:descriptionend]
 		durationstart = information.find("Length=")
 		durationend = information.find("\n", durationstart)
-		duration = information[durationstart+7:durationend]
-		gracestart = information.find("Grace=")
-		if gracestart == -1:
-			grace = "Short"
-		else:
-			graceend = information.find("\n", gracestart)
-			grace = information[gracestart+6:graceend]
+		duration = information[durationstart + 7:durationend]
 		host = ctx.author.mention
 		playerstart = information.find("Player=")
 		if playerstart == -1:
 			player = "5"
 		else:
 			playerend = information.find("\n", playerstart)
-			player = information[playerstart+7:playerend]
+			player = information[playerstart + 7:playerend]
 
 		desc = f"\n**Date:** {date}\n**Time:** {time} EST\n**Length:** {duration}\n**Host:** {host}\n**Who:** {who}\n**Program:** {program}\n**Description:** {description}"
 
 		if len(desc) > 2000:
-			await ctx.channel.send(f"{host}\nThe message has a maximum of 2000 characters. You are currently at {len(desc)}")
+			await ctx.channel.send(
+				f"{host}\nThe message has a maximum of 2000 characters. You are currently at {len(desc)}")
 			return
 
 		sendmsg = await ctx.channel.send(desc)
 		await sendmsg.add_reaction(get_emoji(ctx, "Approved"))
 		await sendmsg.add_reaction(get_emoji(ctx, "Rejected"))
-
 
 		def check(reaction, user):
 			return user == ctx.message.author
@@ -315,7 +285,11 @@ class session(commands.Cog):
 				channel = self.bot.get_channel(questid)
 				questactive = await channel.send(desc)
 				timeposted = utc_to_local(ctx.message.created_at)
-				sheet_activesession.append_row([f"{date} {time}", time, duration, ctx.author.nick, who, assignedemogi, description, str(ctx.author.id), str(questactive.id), f"{timeposted.month}/{timeposted.day}/{timeposted.year} {timeposted.hour}:{timeposted.minute}", player], value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS", table_range="A1")
+				sheet_activesession.append_row(
+					[f"{date} {time}", time, duration, ctx.author.nick, who, assignedemogi, description,
+					 str(ctx.author.id), str(questactive.id),
+					 f"{timeposted.month}/{timeposted.day}/{timeposted.year} {timeposted.hour}:{timeposted.minute}",
+					 player], value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS", table_range="A1")
 				await questactive.add_reaction(assignedemogi)
 				return
 			if reaction.emoji.name == "Rejected":
@@ -323,10 +297,7 @@ class session(commands.Cog):
 				return
 
 
-
-
-
 def setup(bot):
 	bot.add_cog(session(bot))
-	# Adds the Basic commands to the bot
-	# Note: The "setup" function has to be there in every cog file
+# Adds the Basic commands to the bot
+# Note: The "setup" function has to be there in every cog file

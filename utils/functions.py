@@ -676,6 +676,10 @@ async def emojimulti(self, where, choices, title="", who=None, delete=True):
 	:param delete: if the message should be deleted
 	:return: the choice selected or -1 if timedout
 	"""
+	if len(choices) == 0:
+		return -1
+	if len(choices) == 1:
+		return choices[0]
 	x = 0
 	selected = None
 	sendstringtitle = f"**{title}**\n__React with your choice.__\n"
@@ -845,9 +849,9 @@ async def emojimulti(self, where, choices, title="", who=None, delete=True):
 
 def getcharacters(discordid, dead=False, what="All"):
 	if dead:
-		batch_character_list = sheet_all_characters.get_all_values()
+		batch_character_list = sheet_all_characters.get_all_records()
 	else:
-		batch_character_list = sheet_alive_characters.get_all_values()
+		batch_character_list = sheet_alive_characters.get_all_records()
 	if len(batch_character_list) < 1:
 		return None
 	characterlist = []
