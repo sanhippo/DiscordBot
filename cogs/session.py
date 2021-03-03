@@ -1,6 +1,6 @@
 import gspread
 from utils.functions import checkperm, get_emoji, try_delete, utc_to_local, emojiconfirm, sendlong, emojimulti, \
-	getcharacters
+	getcharacters, getinput, RepresentsInt
 import asyncio
 from discord.ext import commands
 from credentials import testing
@@ -89,7 +89,7 @@ class session(commands.Cog):
 					"You do not have permission to cancel this post. If you believe this is an error message a Developer. ")
 				return
 			chan_botspamdm = self.bot.get_channel(botspamdm)
-			choice = await emojimulti(self, chan_botspamdm, ("Yes", "No"), "Do you want to Start the process of Finishing a Session?\nYou Should have XP / Gold / Players and items rewarded ready before.", payload.user_id)
+			choice = await emojimulti(self, chan_botspamdm, ("Yes", "No"), f"<@!{payload.user_id}>\nDo you want to Start the process of Finishing a Session?\nYou Should have XP / Gold / Players and items rewarded ready before.", payload.user_id)
 			if choice == -1:
 				await chan_botspamdm.send("Timeout. ReReact to start again.")
 				return
@@ -106,36 +106,60 @@ class session(commands.Cog):
 			for sessiondetails in batch_session_details:
 				if sessiondetails["MessageID"] == payload.message_id:
 					break
-
-			'''
-			This is the section you were working on.
-			'''
 			cast = []
 			if sessiondetails["Signup Count"] == 0:
 				await chan_botspamdm.send("There are no players signed up yet.")
 			elif sessiondetails["Signup Count"] == 1:
 				characterssplit = sessiondetails["All Character's"]
 				discordsplit = sessiondetails["All Discord ID's"]
-				cast.append((discordsplit, characterssplit))
+				cast.append(f"<@!{discordsplit}>, {characterssplit}")
 			else:
 				characterssplit = sessiondetails["All Character's"].split(",")
 				discordsplit = sessiondetails["All Discord ID's"].split(",")
 				x = 0
 				for x in range(0, len(characterssplit)):
-					cast.append((f"@!{discordsplit[x]}>, characterssplit[x]))
+					cast.append((f"<@!{discordsplit[x]}>, {characterssplit[x]}"))
 					x += 1
+				characterschosen, manual = await emojimulti(self, chan_botspamdm, cast, f"<@!{payload.user_id}>\nSelect the Characters who came to the session.", payload.user_id, multi=True)
+				if manual == -1:
+					await payload.member.send("Timeout. ReReact to start again.")
+					return
 
-			choice = await emojimulti(self, chan_botspamdm, ("Yes", "No"), "Do you want to Start the process of Finishing a Session?\nYou Should have XP / Gold / Players and items rewarded ready before.", payload.user_id)
+			xpinput = await getinput(self, chan_botspamdm, f"<@!{payload.user_id}>\nHow Much XP Per Character To Reward?", payload.user_id, delete_msgs=True, time=120)
+			if not RepresentsInt(xpinput):
+				chan_botspamdm.send("SE100 - You did not enter a number. Exiting")
+				return
+			handoutarray = []
+			for temp in cast:
+				input = await getinput(self, chan_botspamdm, f"<@!{payload.user_id}>\nFor {temp} Enter Items\n# itemname\n# = amount\nitemname = name of the item. New entries on seperate lines using shift + enter.", payload.user_id, delete_msgs=True, time=120)
+				handoutarray.append(input.lower())
+			sendmsg = f"<@!{payload.user_id}>\n**XP:** {xpinput}\n-----------------\n"
+			for temp in range(0, len(cast)):
+				sendmsg = sendmsg + f"**Player:**\n{cast[temp]}\n{handoutarray[temp]}\n-----------------\n"
+			choice = await emojimulti(self, chan_botspamdm, ("Yes", "No"), sendmsg, payload.user_id, time=300)
 			if choice == -1:
-				await payload.member.send("Timeout. ReReact to start again.")
+				await chan_botspamdm.send("Timeout. ReReact to start again.")
 				return
 			elif not choice:
-				await payload.member.send("Message will not be deleted.")
-				return
-			elif choice:
-				pass
-			else:
-				await payload.member.send("Unknown Error. Message Developer. Or Don't add your own reactions....")
+				await chan_botspamdm.send("Rejected Results. Restart with Rereacting...Sorry good luck...")
+			batch_get_characters = sheet_characters.get_all_records()
+
+			x = 0
+			for a in cast:
+				splitcast = a.split(",")
+				aid = splitcast[0].replace("<", "")
+				aid = aid.replace("@", "")
+				aid = aid.replace("!", "")
+				aid = aid.replace(">", "")
+				aid = int(aid)
+				aname = splitcast[1].replace(" ", "")
+				for b in batch_get_characters:
+					if b["DiscordID"] == aid:
+						if b["Name"] == aname:
+							expereience = int(b["Experience"]) + xpinput
+							splithandout = handoutarray.split("\n")
+							print("Hey")
+				x += 1
 
 
 

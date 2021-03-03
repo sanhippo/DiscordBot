@@ -295,19 +295,25 @@ async def confirm(ctx, message, delete_msgs=False):
 	return replyBool
 
 
-async def getinput(ctx, message, delete_msgs=True, time=30):
-	"""
-	Confirms whether a user wants to take an action.
-	:rtype: string
-	:param ctx: The current Context.
-	:param message: The message for the user to confirm.
-	:param delete_msgs: Whether to delete the messages.
-	:return: Whether the user confirmed or not. None if no reply was recieved
-	"""
-	msg = await ctx.channel.send(message)
+async def getinput(self, where, message, who, delete_msgs=True, time=30):
+	'''
+	:param self: the box contenxt
+	:param where: where the message should be sent
+	:param message: what the message to be sent is
+	:param who: who should is allowed to reply
+	:param delete_msgs: delete message if true
+	:param time: how long to wait before timeout
+	:return: the context to be replied to
+	'''
+	msg = await where.send(message)
+
+	def check(reply):
+		if reply.author.id == who and reply.channel.id == where.id:
+			return True
+		return False
 
 	try:
-		reply = await ctx.bot.wait_for('message', timeout=time, check=auth_and_chan(ctx))
+		reply = await self.bot.wait_for('message', timeout=time, check=check)
 	except asyncio.TimeoutError:
 		if delete_msgs:
 			try:
@@ -929,3 +935,11 @@ def getcharacters(discordid, dead=False, what="All"):
 	if len(characterlist) < 1:
 		return None
 	return characterlist
+
+
+def RepresentsInt(s):
+	try:
+		int(s)
+	except ValueError:
+		return False
+	return True
