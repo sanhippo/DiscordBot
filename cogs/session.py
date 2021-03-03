@@ -110,22 +110,19 @@ class session(commands.Cog):
 			'''
 			This is the section you were working on.
 			'''
-
+			cast = []
 			if sessiondetails["Signup Count"] == 0:
 				await chan_botspamdm.send("There are no players signed up yet.")
 			elif sessiondetails["Signup Count"] == 1:
-				characterssplit = sessiondetails["Character's Chosen"]
-				levelssplit = sessiondetails["Level's Chosen"]
-				discordsplit = sessiondetails["Discord ID's Chosen"]
-				cast = f"__Cast__\n**Player:** <@!{discordsplit}> | **Character:** {characterssplit} | **Level:** {levelssplit}\n"
+				characterssplit = sessiondetails["All Character's"]
+				discordsplit = sessiondetails["All Discord ID's"]
+				cast.append((discordsplit, characterssplit))
 			else:
-				characterssplit = sessiondetails["Character's Chosen"].split(",")
-				levelssplit = sessiondetails["Level's Chosen"].split(",")
-				discordsplit = sessiondetails["Discord ID's Chosen"].split(",")
-				cast = "__Cast__\n"
+				characterssplit = sessiondetails["All Character's"].split(",")
+				discordsplit = sessiondetails["All Discord ID's"].split(",")
 				x = 0
 				for x in range(0, len(characterssplit)):
-					cast = cast + f"**Player:** <@!{discordsplit[x]}> | **Character:** {characterssplit[x]} | **Level:** {levelssplit[x]}\n"
+					cast.append((f"@!{discordsplit[x]}>, characterssplit[x]))
 					x += 1
 
 			choice = await emojimulti(self, chan_botspamdm, ("Yes", "No"), "Do you want to Start the process of Finishing a Session?\nYou Should have XP / Gold / Players and items rewarded ready before.", payload.user_id)
