@@ -5,13 +5,14 @@ import asyncio
 from discord.ext import commands
 from credentials import testing
 import datetime
+from cogs.playercharacter import sheet_characters
 
 gc = gspread.service_account()
 workbook = gc.open("Desolation - Session Join Request")
 sheet_activesession = workbook.worksheet("ActiveSessions")
 sheet_signups = workbook.worksheet("signups")
 sheet_joinlist = workbook.worksheet("Test")
-sheet_characters = workbook.worksheet("Player Data")
+
 
 if testing == 1:
 	questid = 816341640133869568
@@ -156,8 +157,8 @@ class session(commands.Cog):
 				for b in batch_get_characters:
 					if b["DiscordID"] == aid:
 						if b["Name"] == aname:
-							expereience = int(b["Experience"]) + xpinput
-							splithandout = handoutarray.split("\n")
+							expereience = int(b["Experience"]) + int(xpinput)
+							splithandout = handoutarray[x].split("\n")
 							print("Hey")
 				x += 1
 
@@ -169,7 +170,7 @@ class session(commands.Cog):
 
 
 
-
+			return
 			sheet_activesession.delete_row(row)
 			await try_delete(message)
 			await payload.member.send("Message Deleted")
