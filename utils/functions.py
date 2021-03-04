@@ -943,3 +943,22 @@ def RepresentsInt(s):
 	except ValueError:
 		return False
 	return True
+
+
+def get_cell_for_update(data, rownumber, colum):
+	'''
+	:param data: data for the cell can be an array
+	:param rownumber: the row number of the cell can be an array
+	:param colnum: the column of the cell can be an array
+	:return: cell or -1 if incorrect
+	'''
+	cells = []
+	if not len(data) == len(rownumber):
+		return -1
+	if not len(data) == len(colum):
+		return -1
+	x = 0
+	for x in range(0,len(data)):
+		cells.append(Cell(row=rownumber[x], col=colum[x], value=str(data[x])))
+	return cells
+

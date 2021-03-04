@@ -1,6 +1,6 @@
 import gspread
 from utils.functions import checkperm, get_emoji, try_delete, utc_to_local, emojiconfirm, sendlong, emojimulti, \
-	getcharacters, getinput, RepresentsInt
+	getcharacters, getinput, RepresentsInt, get_cell_for_update
 import asyncio
 from discord.ext import commands
 from credentials import testing
@@ -12,6 +12,10 @@ workbook = gc.open("Desolation - Session Join Request")
 sheet_activesession = workbook.worksheet("ActiveSessions")
 sheet_signups = workbook.worksheet("signups")
 sheet_joinlist = workbook.worksheet("Test")
+
+colexp = 11
+colitem = 12
+colgold = 10
 
 
 if testing == 1:
@@ -146,6 +150,7 @@ class session(commands.Cog):
 			batch_get_characters = sheet_characters.get_all_records()
 
 			x = 0
+			cells = []
 			for a in cast:
 				splitcast = a.split(",")
 				aid = splitcast[0].replace("<", "")
@@ -154,29 +159,94 @@ class session(commands.Cog):
 				aid = aid.replace(">", "")
 				aid = int(aid)
 				aname = splitcast[1].replace(" ", "")
+				frow = 2
 				for b in batch_get_characters:
 					if b["DiscordID"] == aid:
 						if b["Name"] == aname:
-							expereience = int(b["Experience"]) + int(xpinput)
-							splithandout = handoutarray[x].split("\n")
-							print("Hey")
+							if RepresentsInt(b['Gold']):
+								gold = int(b['Gold'])
+							else:
+								gold = 0
+							if RepresentsInt(b["Experience"]):
+								expereience = int(b["Experience"]) + int(xpinput)
+							else:
+								expereience = int(xpinput)
+							splithandout = handoutarray[x].split(",")
+							playersitems = b["Items"]
+							playersitemssplit = playersitems.split(",")
+							if splithandout[0] == "none":
+								pass
+							elif splithandout[0] == "nothing":
+								pass
+							elif splithandout[0] == "na":
+								pass
+							elif splithandout[0] == "n/a":
+								pass
+							else:
+								for items in splithandout:
+									item = items.strip()
+									itemsplit = item.split(" ", 1)
+									if len(itemsplit) < 2:
+										await chan_botspamdm.send(f"Error 103: <@!{payload.user_id}> the item {item} was not added to {b['Name']}.Was likely missing an amount or name")
+									else:
+										if not RepresentsInt(itemsplit[0]):
+											await chan_botspamdm.send(
+												f"Error 104: <@!{payload.user_id}> the item {item} was not added to {b['Name']}. Item Did not have a number.")
+											break
+										itemamount = int(itemsplit[0])
+										if itemsplit[1] == "gold":
+											gold = gold + itemamount
+										elif itemsplit[1] == "silver":
+											gold = gold + (itemamount / 10)
+										elif itemsplit[1] == "copper":
+											gold = gold + (itemamount / 100)
+										elif itemsplit[1] == "platinum":
+											gold = gold + (itemamount * 10)
+										else:
+											match = False
+											d = 0
+											for pitems in playersitemssplit:
+												if pitems == "":
+													break
+												else:
+													pitems = pitems.strip()
+													pitems = pitems.split(" ", 1)
+													if len(pitems) < 2:
+														pass
+													else:
+														if pitems[1] == itemsplit[1]:
+															if not RepresentsInt(pitems[0]):
+																f"Error 105: <@!{payload.user_id}> the item {item} was not added to {b['Name']}."
+																break
+															playersitemssplit[d] = f"{int(pitems[0]) + itemamount} {pitems[1]}"
+															match = True
+															break
+													d += 1
+											if not match:
+												playersitemssplit.append(f"{itemamount} {itemsplit[1]}")
+							newitemstring = ""
+							c = 1
+							for items in playersitemssplit:
+								if not items == "":
+									if len(playersitemssplit) > c:
+										newitemstring = newitemstring + items + ","
+									else:
+										newitemstring = newitemstring + items
+								c += 1
+							celldata = get_cell_for_update((gold, expereience, newitemstring), (frow, frow, frow), (colgold, colexp, colitem))
+							for temp in celldata:
+								cells.append(temp)
+							break
+					else:
+						frow += 1
 				x += 1
-
-
-
-
-
-
-
-
-
-			return
+			sheet_characters.update_cells(cells, value_input_option="USER_ENTERED")
 			sheet_activesession.delete_row(row)
 			await try_delete(message)
-			await payload.member.send("Message Deleted")
+			await chan_botspamdm.send("Post Completed")
 			return
 
-		if payload.emoji.name == "❔":  # Get Information about Active Session
+		elif payload.emoji.name == "❔":  # Get Information about Active Session
 			developer = False
 			dm = False
 			for role in payload.member.roles:
@@ -245,32 +315,32 @@ class session(commands.Cog):
 			await sendlong(chan_botspamdm, sendmsg)
 			return
 
-		'''
-		This Section is for actual signups. 
-		'''
-
-		chan_botspamplayer = self.bot.get_channel(botspamplayer)
-		characters = getcharacters(int(payload.user_id), what="Name")
-		if characters is None:
-			await payload.member.send("You currently have no character's setup. Message a Developer for Help.")
+		else:
+			chan_botspamplayer = self.bot.get_channel(botspamplayer)
+			characters = getcharacters(int(payload.user_id), what="Name")
+			if characters is None:
+				await payload.member.send("You currently have no character's setup. Message a Developer for Help.")
+				return
+			character = await emojimulti(self, chan_botspamplayer, characters, "Which Character?", who=payload.user_id)
+			batch_get_signups = sheet_signups.get_all_records()
+			batch_Get_sessions = sheet_activesession.get_all_records()
+			if len(batch_get_signups) > 0:
+				for signups in batch_get_signups:
+					if signups["DiscordID"] == payload.user_id:
+						if signups["MessageID"] == payload.message_id:
+							await payload.member.send(
+								f"You are already signed up for session {signups['Assignment']} with character {signups['Character']} at {signups['Timestamp']}.")
+							return
+			timeposted = datetime.datetime.now()
+			sheet_signups.append_row([
+				f"{timeposted.month}/{timeposted.day}/{timeposted.year} {timeposted.hour}:{timeposted.minute}:{timeposted.second}.{timeposted.microsecond}",
+				payload.emoji.name, character, str(payload.message_id),
+				str(payload.user_id), 1], value_input_option='USER_ENTERED',
+				insert_data_option="INSERT_ROWS", table_range="A1")
+			await payload.member.send(
+				f"You have signed up for session {payload.emoji.name} with character {character}.")
 			return
-		character = await emojimulti(self, chan_botspamplayer, characters, "Which Character?", who=payload.user_id)
-		batch_get_signups = sheet_signups.get_all_records()
-		if len(batch_get_signups) > 0:
-			for signups in batch_get_signups:
-				if signups["DiscordID"] == payload.user_id:
-					if signups["MessageID"] == payload.message_id:
-						await payload.member.send(
-							f"You are already signed up for session {signups['Assignment']} with character {signups['Character']} at {signups['Timestamp']}.")
-						return
-		timeposted = datetime.datetime.now()
-		sheet_signups.append_row([
-			f"{timeposted.month}/{timeposted.day}/{timeposted.year} {timeposted.hour}:{timeposted.minute}:{timeposted.second}.{timeposted.microsecond}",
-			payload.emoji.name, character, str(payload.message_id),
-			str(payload.user_id), 1], value_input_option='USER_ENTERED',
-			insert_data_option="INSERT_ROWS", table_range="A1")
-		await payload.member.send(
-			f"You have signed up for session {payload.emoji.name} with character {character}.")
+
 		return
 
 	# Define a new command
@@ -303,6 +373,9 @@ class session(commands.Cog):
 		timestart = information.find("Time=")
 		timeend = information.find("\n", timestart)
 		time = information[timestart + 5:timeend]
+		allowedstart = information.find("Allowed=")
+		allowedend = information.find("\n", allowedstart)
+		allowed = information[allowedstart + 8: allowedend]
 		descriptionstart = information.find("Desc=")
 		descriptionend = len(information)
 		description = information[descriptionstart + 5:descriptionend]
@@ -317,6 +390,47 @@ class session(commands.Cog):
 			playerend = information.find("\n", playerstart)
 			player = information[playerstart + 7:playerend]
 
+		low = 0
+		high = 0
+		for p in ctx.message.role_mentions:
+			p.name = p.name.replace(" ","")
+			rolesplit = p.name.split("-")
+			if len(rolesplit) < 2:
+				pass
+			else:
+				if not RepresentsInt(rolesplit[0]):
+					pass
+				else:
+					for temp in rolesplit:
+						if not RepresentsInt(temp):
+							pass
+						else:
+							value = int(temp)
+							if low == 0:
+								low = value
+							elif low > value:
+								low = value
+							if high == 0:
+								high = value
+							elif high < value:
+								high = value
+
+
+		if allowed == "0":
+			allowedtxt = "In - Range Only"
+		elif allowed == "10":
+			allowedtxt = "Lower allowed but In-Ranged preferred"
+		elif allowed == "100":
+			allowed = "Lower and In - Range"
+		elif allowed == "20":
+			allowedtxt  = "Higher allowed but In-Ranged preferred."
+		elif allowed == "200":
+			allowedtxt = "Higher and In - Range"
+		elif allowed == "9":
+			allowedtxt = "all allowed - in range preferred"
+		else:
+			allowed = 900
+			allowedxt = "all allowed"
 		desc = f"\n**Date:** {date}\n**Time:** {time} EST\n**Length:** {duration}\n**Host:** {host}\n**Who:** {who}\n**Program:** {program}\n**Description:** {description}"
 
 		if len(desc) > 2000:
@@ -361,7 +475,7 @@ class session(commands.Cog):
 					[f"{date} {time}", time, duration, ctx.author.nick, who, assignedemogi, description,
 					 str(ctx.author.id), str(questactive.id),
 					 f"{timeposted.month}/{timeposted.day}/{timeposted.year} {timeposted.hour}:{timeposted.minute}",
-					 player], value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS", table_range="A1")
+					 player, low, high, allowed], value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS", table_range="A1")
 				await questactive.add_reaction(assignedemogi)
 				return
 			if reaction.emoji.name == "Rejected":
