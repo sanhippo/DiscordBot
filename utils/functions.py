@@ -17,7 +17,7 @@ sheetactivties = wdowntime.worksheet("DowntimeTest")
 workbook = gc.open("Desolation Player Management")
 sheet_managment = workbook.worksheet("Management")
 sheet_all_characters = workbook.worksheet("Character")
-sheet_alive_characters = workbook.worksheet("Character's Alive")
+
 
 
 class playerinfo:
@@ -918,25 +918,6 @@ async def emojimulti(self, where, choices, title="", who=None, delete=True, mult
 		return selected
 
 
-def getcharacters(discordid, dead=False, what="All"):
-	if dead:
-		batch_character_list = sheet_all_characters.get_all_records()
-	else:
-		batch_character_list = sheet_alive_characters.get_all_records()
-	if len(batch_character_list) < 1:
-		return None
-	characterlist = []
-	for character in batch_character_list:
-		if character["DiscordID"] == discordid:
-			if what == "All":
-				characterlist.append(character)
-			else:
-				characterlist.append(character[what])
-	if len(characterlist) < 1:
-		return None
-	return characterlist
-
-
 def RepresentsInt(s):
 	try:
 		int(s)
@@ -962,3 +943,50 @@ def get_cell_for_update(data, rownumber, colum):
 		cells.append(Cell(row=rownumber[x], col=colum[x], value=str(data[x])))
 	return cells
 
+
+def search_dictionary(dictionary, key, value, statement):
+	"""
+	:param dictionary: a list of dictionaries to be searched through
+	:param key:  a list of dictionary keys to be compared to value by statement
+	:param value: a list of values to compare to key via statement
+	:param statement:  a list of statements to compare key x statement
+	:return: matches from the list are return, None is returned if no matches, -1 is returned if lengths dont match
+	:example: results = search_dictionary(candy, ('Level', 'DiscordID'), (3, 1321561651), ('>', '==')
+	"""
+
+	#  Compare length's of Lists's
+
+	if not len(key) == len(value):
+		return -1
+	if not len(key) == len(statement):
+		return -1
+	if len(dictionary) == 0:
+		return None
+	# Set a new list
+	results = []
+	for a in dictionary:  # Search through the list
+		checks = True  # Set To True if any statement matches aren't true they are set to false.
+		for b in range(0, len(key)):  # Search through the list of statements to compare
+			if a[key[b]] == "":
+				checks = False
+				break
+			elif not eval(f"{a[key[b]]} {statement[b]} {value[b]}"):  # Eval compare dictionary key to value using statement
+				checks = False
+				break
+		if checks:
+			results.append(a)
+	if len(results) == 0:
+		return None
+	return results
+
+
+def get_dictionary_key(dictionary, key):
+	"""
+	:param dictionary: list of dictionaries
+	:param key: the key to return
+	:return: the value of the dictionary key
+	"""
+	results = []
+	for d in dictionary:
+		results.append(d[key])
+	return results

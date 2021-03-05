@@ -1,6 +1,6 @@
 import gspread
 from utils.functions import checkperm, get_emoji, try_delete, utc_to_local, emojiconfirm, sendlong, emojimulti, \
-	getcharacters, getinput, RepresentsInt, get_cell_for_update
+	search_dictionary, getinput, RepresentsInt, get_cell_for_update, get_dictionary_key
 import asyncio
 from discord.ext import commands
 from credentials import testing
@@ -12,6 +12,8 @@ workbook = gc.open("Desolation - Session Join Request")
 sheet_activesession = workbook.worksheet("ActiveSessions")
 sheet_signups = workbook.worksheet("signups")
 sheet_joinlist = workbook.worksheet("Test")
+workbook2 = gc.open("Desolation Player Management")
+sheet_alive_characters = workbook2.worksheet("Character's Alive")
 
 colexp = 11
 colitem = 12
@@ -317,13 +319,25 @@ class session(commands.Cog):
 
 		else:
 			chan_botspamplayer = self.bot.get_channel(botspamplayer)
-			characters = getcharacters(int(payload.user_id), what="Name")
+			batch_get_signups = sheet_signups.get_all_records()
+			signedup = search_dictionary(batch_get_signups, ['DiscordID', 'MessageID'], [payload.user_id, payload.message_id], ['==', '=='])
+			if not signedup is None:
+				await payload.member.send(f"You are already signed up for session {signedup[0]['Assignment']} with character {signedup[0]['Character']} at {signedup[0]['Timestamp']}.")
+				return
+			batch_get_joinlist = sheet_joinlist.get_all_records()
+			session = search_dictionary(batch_get_joinlist, ['MessageID'], [payload.message_id], ['=='])
+			if session is None:
+				return payload.member.send("Session Does Not Exist Alert Staff")
+
+			characters = search_dictionary(batch_get_characters, ['DiscordID'], [payload.user_id], ['=='])
 			if characters is None:
 				await payload.member.send("You currently have no character's setup. Message a Developer for Help.")
 				return
-			character = await emojimulti(self, chan_botspamplayer, characters, "Which Character?", who=payload.user_id)
+			elif characters == 1:
+				characters = characters
+			else:
+				character = await emojimulti(self, chan_botspamplayer, get_dictionary_key(characters, 'Name'), "Which Character?", who=payload.user_id)
 			batch_get_signups = sheet_signups.get_all_records()
-			batch_Get_sessions = sheet_activesession.get_all_records()
 			if len(batch_get_signups) > 0:
 				for signups in batch_get_signups:
 					if signups["DiscordID"] == payload.user_id:
