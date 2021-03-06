@@ -18,6 +18,8 @@ workbook = gc.open("Desolation Player Management")
 sheet_managment = workbook.worksheet("Management")
 sheet_all_characters = workbook.worksheet("Character")
 
+logbook = gc.open("Desolation Log")
+log_session = logbook.worksheet("Session")
 
 
 class playerinfo:
@@ -990,3 +992,21 @@ def get_dictionary_key(dictionary, key):
 	for d in dictionary:
 		results.append(d[key])
 	return results
+
+
+def logger(logtype, data):
+	timedate = datetime.datetime.now()
+
+	if logtype == "Session":
+		'''
+		Data 0 = HostID
+		Data 1 = XP Max
+		Data 2 = XP
+		Data 3 = Cast Array
+		Data 4 = Rewards
+		'''
+
+		log_session.append_row(
+			[f"{timedate.month}/{timedate.day}/{timedate.year} {timedate.hour}:{timedate.minute}", data[0], data[1], data[2], data[3], data[4]], value_input_option='USER_ENTERED', insert_data_option="INSERT_ROWS",
+			table_range="A1")
+	return

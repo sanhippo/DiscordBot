@@ -1,6 +1,6 @@
 import gspread
 from utils.functions import checkperm, get_emoji, try_delete, utc_to_local, emojiconfirm, sendlong, emojimulti, \
-	search_dictionary, getinput, RepresentsInt, get_cell_for_update, get_dictionary_key
+	search_dictionary, getinput, RepresentsInt, get_cell_for_update, get_dictionary_key, logger
 import asyncio
 from discord.ext import commands
 from credentials import testing
@@ -11,7 +11,7 @@ gc = gspread.service_account()
 workbook = gc.open("Desolation - Session Join Request")
 sheet_activesession = workbook.worksheet("ActiveSessions")
 sheet_signups = workbook.worksheet("signups")
-sheet_joinlist = workbook.worksheet("Test")
+sheet_joinlist = workbook.worksheet("JoinList")
 workbook2 = gc.open("Desolation Player Management")
 sheet_alive_characters = workbook2.worksheet("Character's Alive")
 
@@ -19,6 +19,7 @@ colexp = 11
 colitem = 12
 colgold = 10
 maxsignups = 40
+colpriority = 16
 
 if testing == 1:
 	questid = 816341640133869568
@@ -26,6 +27,8 @@ if testing == 1:
 	botspamplayer = 816351222013100072
 else:
 	questid = 690302160465952906
+	botspamdm = 817805134733246485
+	botspamplayer = 817805569758593076
 
 '''
 session['allowed'] = 
@@ -104,8 +107,8 @@ class session(commands.Cog):
 				return
 			chan_botspamdm = self.bot.get_channel(botspamdm)  # Get place to post dm messages
 			choice = await emojimulti(self, chan_botspamdm, ("Yes", "No"),
-			                          f"<@!{payload.user_id}>\nDo you want to Start the process of Finishing a Session?\nYou Should have XP / Gold / Players and items rewarded ready before.",
-			                          payload.user_id)
+									  f"<@!{payload.user_id}>\nDo you want to Start the process of Finishing a Session?\nYou Should have XP / Gold / Players and items rewarded ready before.",
+									  payload.user_id)
 			if choice == -1:  # Timedout.
 				await chan_botspamdm.send("Timeout. ReReact to start again.")
 				return
@@ -125,11 +128,11 @@ class session(commands.Cog):
 			cast = []  # Get the cast of everyone who signedup for the session
 			if sessiondetails["Signup Count"] == 0:  # Error out if no one signed up
 				await chan_botspamdm.send("There are no players signed up yet.")
-				return # TODO: Add the ability for the user to delete the message.
+				return  # TODO: Add the ability for the user to delete the message.
 			elif sessiondetails["Signup Count"] == 1:  # If only one user is found just return that users information
 				characterssplit = sessiondetails["All Character's"]
 				discordsplit = sessiondetails["All Discord ID's"]
-				cast.append(f"<@!{discordsplit}>, {characterssplit}")
+				cast.characterschosen = f"<@!{discordsplit}>, {characterssplit}"
 			else:  # Split the users
 				characterssplit = sessiondetails["All Character's"].split(",")
 				discordsplit = sessiondetails["All Discord ID's"].split(",")
@@ -138,14 +141,14 @@ class session(commands.Cog):
 					cast.append((f"<@!{discordsplit[x]}>, {characterssplit[x]}"))  # Add characters to display dicord name correctly on discord
 					x += 1
 				characterschosen, manual = await emojimulti(self, chan_botspamdm, cast,
-				                                            f"<@!{payload.user_id}>\nSelect the Characters who came to the session.",
-				                                            payload.user_id, multi=True) #  Go though all the people who signed up to select who came to the session.
+															f"<@!{payload.user_id}>\nSelect the Characters who came to the session.",
+															payload.user_id, multi=True) #  Go though all the people who signed up to select who came to the session.
 				if manual == -1:  # When timeout error out
 					await payload.member.send("Timeout. ReReact to start again.")
 					return
 			xpinput = await getinput(self, chan_botspamdm,
-			                         f"<@!{payload.user_id}>\nHow Much XP Per Character To Reward?\n{sessiondetails['Experience Cap']}", payload.user_id,
-			                         delete_msgs=True, time=120)  # Get how much xp the players should recieve
+									 f"<@!{payload.user_id}>\nHow Much XP Per Character To Reward? Limits:\n{sessiondetails['Experience Cap']}", payload.user_id,
+									 delete_msgs=True, time=120)  # Get how much xp the players should recieve
 			if not RepresentsInt(xpinput):  # Error out if they entered a number that cant conver to an int.
 				chan_botspamdm.send("SE100 - You did not enter a number. Exiting")
 				return
@@ -154,14 +157,14 @@ class session(commands.Cog):
 			if xpinput > int(experiencesplit[3]):  # if experience is given out higher then the deadly. Lower xp to deadly.
 				xpintput = int(experiencesplit[3])
 			handoutarray = []  # Start out a fresh array for things gave out. Each should be serpated by a comma
-			for temp in cast:  # Go through all the people that were selected by the DM.
+			for temp in characterschosen:  # Go through all the people that were selected by the DM.
 				input = await getinput(self, chan_botspamdm,
-				                       f"<@!{payload.user_id}>\nFor {temp} Enter Items\n# itemname\n# = amount\nitemname = name of the item. New entries seperated by a comma",
-				                       payload.user_id, delete_msgs=True, time=120)  # Go through cast and add items to each
+									   f"<@!{payload.user_id}>\nFor {temp} Enter Items\n# itemname\n# = amount\nitemname = name of the item. New entries seperated by a comma",
+									   payload.user_id, delete_msgs=True, time=120)  # Go through cast and add items to each
 				handoutarray.append(input.lower())  # convert item list to lower
 			sendmsg = f"<@!{payload.user_id}>\n**XP:** {xpinput}\n-----------------\n"  # get the player to confirm all the items given out.
-			for temp in range(0, len(cast)):  # go through list to send to the DM to approve. TODO: convert to long msg at some point
-				sendmsg = sendmsg + f"**Player:**\n{cast[temp]}\n{handoutarray[temp]}\n-----------------\n"
+			for temp in range(0, len(characterschosen)):  # go through list to send to the DM to approve. TODO: convert to long msg at some point
+				sendmsg = sendmsg + f"**Player:**\n{characterschosen[temp]}\n{handoutarray[temp]}\n-----------------\n"
 			choice = await emojimulti(self, chan_botspamdm, ("Yes", "No"), sendmsg, payload.user_id, time=300)  # Does the DM Approve reward
 			if choice == -1:  # Took to long so timeout out
 				await chan_botspamdm.send("Timeout. ReReact to start again.")
@@ -171,7 +174,9 @@ class session(commands.Cog):
 			batch_get_characters = sheet_characters.get_all_records()  # Get all players
 			x = 0  # Variable for looking at handoutarray
 			cells = []  # an array for the cells to be updated in the googlespreadsheet
-			for a in cast:  # go through all members of the cast to add items to. TODO: add the dm as well in here in the beginning
+			characternamearray = ""
+			itemarray = ""
+			for a in characterschosen:  # go through all members of the cast to add items to. TODO: add the dm as well in here in the beginning
 				splitcast = a.split(",")  # split the id from the character name
 				aid = splitcast[0].replace("<", "")  # remove all the discord friendly parts of the ID
 				aid = aid.replace("@", "")
@@ -180,6 +185,8 @@ class session(commands.Cog):
 				aid = int(aid)  # convert ID from string to INT
 				aname = splitcast[1].strip(" ")  # remove leading and post blank spaces
 				frow = 2  # variable for what row the character was found in.
+				characternamearray = characternamearray + f" {aname} |"
+				itemarray = itemarray + f" {handoutarray[x]} |"
 				for b in batch_get_characters:  # loop through the spreadsheet to find the matching cast member's row
 					if b["DiscordID"] == aid:  # matching spreadsheet row to dicord id
 						if b["Name"] == aname:  # matching spreadsheet row to cast name
@@ -255,14 +262,17 @@ class session(commands.Cog):
 									else:
 										newitemstring = newitemstring + items
 								c += 1
-							celldata = get_cell_for_update((gold, expereience, newitemstring), (frow, frow, frow),
-							                               (colgold, colexp, colitem))  # send items to gsheet to update session details
+							timepriority = datetime.datetime.now()  # Get current time and date to be listed as when they requested to join the session. This is used in the second frame as it is first come first serve.
+							priority = f"{timepriority.month}/{timepriority.day}/{timepriority.year} {timepriority.hour}:{timepriority.minute}:{timepriority.second}.{timepriority.microsecond}"
+							celldata = get_cell_for_update((gold, expereience, newitemstring, priority), (frow, frow, frow, frow),
+														   (colgold, colexp, colitem, colpriority))  # send items to gsheet to update session details
 							for temp in celldata:  # add to cell array
 								cells.append(temp)
 							break
 					else:
 						frow += 1  # update to search through next row
 				x += 1  # update to search for next cast
+			logger("Session", [str(sessiondetails['HostID']), sessiondetails['Experience Cap'], xpinput, characternamearray, itemarray])
 			sheet_characters.update_cells(cells, value_input_option="USER_ENTERED")  # move data to google sheet
 			sheet_activesession.delete_row(row)  # delete session from google sheet
 			await try_delete(message)  # delete message from discord
@@ -271,9 +281,9 @@ class session(commands.Cog):
 
 		# Get Session Information.
 		elif payload.emoji.name == "❔":  # Get Information about Active Session
-			developer = False
-			dm = False
-			for role in payload.member.roles:
+			developer = False  # variable to check to see if the user is a developer
+			dm = False  # check to see if the user has a dm role
+			for role in payload.member.roles:  # check the users roles for dm or developer
 				if role.name == "Developer":
 					developer = True
 					break
@@ -281,45 +291,54 @@ class session(commands.Cog):
 					dm = True
 				elif role.name == "Trial DM":
 					dm = True
-			if not (developer or dm):
+			if not (developer or dm):  # cancel out if the user does not have the permisions needed
 				msg = await payload.member.send(
 					"You do not have permission to get results of this post. If you believe this is an error message a Developer.")
 				return
-			batch_get_joinlist = sheet_joinlist.get_all_records()
-			if len(batch_get_joinlist) < 1:
+			batch_get_joinlist = sheet_joinlist.get_all_records()  # get all the sessions
+			if len(batch_get_joinlist) < 1:  # end if there was no sessions detected. Shouldnt ever happen
 				await payload.member.send("An Error has been detected. No Session's Found")
 				return
-			activesession = False
-			for sessionmatch in batch_get_joinlist:
-				if sessionmatch["MessageID"] == payload.message_id:
-					activesession = True
+			activesession = False  # variable to check to see if the message has a session t
+			for sessionmatch in batch_get_joinlist:  # look through list to if the message has a attached session
+				if sessionmatch["MessageID"] == payload.message_id:  # does the message id match this session
+					activesession = True  # there is a session avaliable
 					break
-			if not activesession:
+			if not activesession:  # no session match found
 				await payload.member.send("An Error has been detected. No Session's Found")
 				return
-			if sessionmatch["Signup Count"] == 0:
+			if sessionmatch["Signup Count"] == 0:  # how many people are signed up. No point of returning info if no one.
 				await payload.member.send("There are no players signed up yet.")
-			elif sessionmatch["Signup Count"] == 1:
+				return
+			elif sessionmatch["Signup Count"] == 1:  # if only one person signed up just return there information
 				characterssplit = sessionmatch["Character's Chosen"]
 				levelssplit = sessionmatch["Level's Chosen"]
 				discordsplit = sessionmatch["Discord ID's Chosen"]
-				cast = f"__Cast__\n**Player:** <@!{discordsplit}> | **Character:** {characterssplit} | **Level:** {levelssplit}\n"
-			else:
-				characterssplit = sessionmatch["Character's Chosen"].split(",")
-				levelssplit = sessionmatch["Level's Chosen"].split(",")
-				discordsplit = sessionmatch["Discord ID's Chosen"].split(",")
-				cast = "__Cast__\n"
-				x = 0
-				for x in range(0, len(characterssplit)):
+				cast = f"__Cast__\n**Player:** <@!{discordsplit}> | **Character:** {characterssplit} | **Level:** {levelssplit}\n"  # TODO: Add Class as well
+			else:  # if multi people signedup return entire cast.
+				characterssplit = sessionmatch["All Character's"].split(",")  # split up characters
+				levelssplit = sessionmatch["All Level's"].split(",")  # split up levels
+				discordsplit = sessionmatch["All Discord ID's"].split(",")  # split up discord ids
+				cast = "__Cast__\n"  # title for discord
+				x = 0  # variable to search through
+				for x in range(0, sessionmatch["Signup Count"]-1):  # loop through allowed signups and add them
 					cast = cast + f"**Player:** <@!{discordsplit[x]}> | **Character:** {characterssplit[x]} | **Level:** {levelssplit[x]}\n"
-					x += 1
-
-			experiencesplit = sessionmatch["Experience Cap"].split(",")
-			goldsplit = sessionmatch["Gold Cap"].split(",")
-			chan_botspamdm = self.bot.get_channel(botspamdm)
-			x = 0
-			xpgold = "__Xp/Gold Cap Per Session Not Per Person__\n"
-			for x in range(0, len(experiencesplit)):
+					if x >= sessionmatch["Player Count"]-1:  # if you hit the player cap break out
+						break
+				if sessionmatch["Player Count"] < sessionmatch["Signup Count"]:  # If the session has extra players add two for cast.
+					cast = cast + f"__Extra Player's  if Needed__\n"
+					if x < sessionmatch["Signup Count"]-1:
+						cast = cast + f"**Player:** <@!{discordsplit[x]}> | **Character:** {characterssplit[x]} | **Level:** {levelssplit[x]}\n"
+						x += 1
+					if x < sessionmatch["Signup Count"] - 1:
+						cast = cast + f"**Player:** <@!{discordsplit[x]}> | **Character:** {characterssplit[x]} | **Level:** {levelssplit[x]}\n"
+						x += 1
+			experiencesplit = sessionmatch["Experience Cap"].split(",")  # split up exp cap
+			goldsplit = sessionmatch["Gold Cap"].split(",")  # split up gold cap
+			chan_botspamdm = self.bot.get_channel(botspamdm) # get dm channel
+			x = 0  # start a new search variable
+			xpgold = "__Xp/Gold Cap Per Session Not Per Person__\n"  # start a new area of the post
+			for x in range(0, len(experiencesplit)):  # loop through all the variables
 				if x == 0:
 					xpgold = xpgold + "**Easy:** "
 				elif x == 1:
@@ -328,23 +347,23 @@ class session(commands.Cog):
 					xpgold = xpgold + "**Hard:** "
 				else:
 					xpgold = xpgold + "**Deadly:** "
-				xpgold = xpgold + f"XP: {experiencesplit[x]} |  Gold: {goldsplit[x]}\n"
-			datentime = "__Date/Time__\n" + sessionmatch["Date/Time"] + "\n"
-			hostid = sessionmatch["HostID"]
-			host = f"__Host__\n <@!{hostid}> \n"
-			signupsallowed = f"__Allowed Slots__\n{sessionmatch['Player Count']} \n"
-			sessionassignment = f"__Session__\n{sessionmatch['Assignment']} \n"
-			grace = f"__Grace Periods Ends__\n{sessionmatch['Grace']} \n"
-			sendmsg = sessionassignment + datentime + grace + host + signupsallowed + xpgold + cast
-			await sendlong(chan_botspamdm, sendmsg)
-			return
+				xpgold = xpgold + f"XP: {experiencesplit[x]} |  Gold: {goldsplit[x]}\n"  # get xp gold splits
+			datentime = "__Date/Time__\n" + sessionmatch["Date/Time"] + "\n"  # get date of the session
+			hostid = sessionmatch["HostID"]  # get who is hosting the session
+			host = f"__Host__\n <@!{hostid}> \n"  # conver to discord recognized mention
+			signupsallowed = f"__Allowed Slots__\n{sessionmatch['Player Count']} \n"  # number of people allowed to signup
+			sessionassignment = f"__Session__\n{sessionmatch['Assignment']} \n"  #  what letter it is to sign up
+			grace = f"__Grace Periods Ends__\n{sessionmatch['Grace']} \n"  # when the grace period ends.
+			sendmsg = sessionassignment + datentime + grace + host + signupsallowed + xpgold + cast  # the msg to post in chat
+			await sendlong(chan_botspamdm, sendmsg)  # check to see if the msg is over 2000 characters
+			return  # end
 
 		# Attempt signup for a specific session
 		else:  # Used for signing up to a session
 			chan_botspamplayer = self.bot.get_channel(botspamplayer)  # Get the channel that the messages will be sent to for the player.
 			batch_get_signups = sheet_signups.get_all_records()  # Get all people signedup to the session TODO: in the future change this to just use the joinlist to search
 			signedup = search_dictionary(batch_get_signups, ['DiscordID', 'MessageID'],
-			                             [payload.user_id, payload.message_id], ['==', '=='])  #  Look to see if the player has already signedup
+										 [payload.user_id, payload.message_id], ['==', '=='])  #  Look to see if the player has already signedup
 			if not signedup is None:  # If the player has signedup exit. Telling them they have and when.
 				await payload.member.send(
 					f"You are already signed up for session {signedup[0]['Assignment']} with character {signedup[0]['Character']} at {signedup[0]['Timestamp']}.")
@@ -361,33 +380,33 @@ class session(commands.Cog):
 			batch_get_characters = sheet_alive_characters.get_all_records()  # get all alive character records Then search to see if they have matching characters using criteria setup in the session.
 			if session['Allowed'] == 0:  # Only Characters in Range
 				characters = search_dictionary(batch_get_characters, ['DiscordID', 'DiscordID', 'Level', 'Level'],
-				                               [payload.user_id, session['HostID'], session['Min'], session['Max']],
-				                               ['==', '!=', '>=', '<='])
+											   [payload.user_id, session['HostID'], session['Min'], session['Max']],
+											   ['==', '!=', '>=', '<='])
 			elif session['Allowed'] == 10 or session['Allowed'] == 100:  # Lower Characters Allowed
 				characters = search_dictionary(batch_get_characters, ['DiscordID', 'DiscordID', 'Level'],
-				                               [payload.user_id, session['HostID'],session['Max']],
-				                               ['==', '!=', '<='])
+											   [payload.user_id, session['HostID'],session['Max']],
+											   ['==', '!=', '<='])
 
 			elif session['Allowed'] == 20 or session['Allowed'] == 200:  # Higher Characters Allowed
 				characters = search_dictionary(batch_get_characters, ['DiscordID', 'DiscordID', 'Level'],
-				                               [payload.user_id, session['HostID'],session['Min']],
-				                               ['==', '!=', '>='])
+											   [payload.user_id, session['HostID'],session['Min']],
+											   ['==', '!=', '>='])
 
 			else:  # All Characters Allowed
 				characters = search_dictionary(batch_get_characters, ['DiscordID', 'DiscordID'],
-				                               [payload.user_id, session['HostID']],
-				                               ['==', '!='])
+											   [payload.user_id, session['HostID']],
+											   ['==', '!='])
 			if characters is None:  # The character has no eligable characters.
 				await payload.member.send("You Have no Character's that are eligible for the current session.\nThis "
-				                          "could be due to not being in the missions allowed target range, because you "
-				                          "are hosting the session\n or because you have no alive characters "
-				                          "setup.\nIf you believe this is an error contact a Developer.")
+										  "could be due to not being in the missions allowed target range, because you "
+										  "are hosting the session\n or because you have no alive characters "
+										  "setup.\nIf you believe this is an error contact a Developer.")
 				return
 			elif len(characters) == 1:  # If there is only one character convert to not list.
 				character = characters[0]
 			else:
 				charactername = await emojimulti(self, chan_botspamplayer, get_dictionary_key(characters, 'Name'),
-				                                 "Which Character?", who=payload.user_id)  #  If they have multiple eligable characters ask which one they want to use.
+												 "Which Character?", who=payload.user_id)  #  If they have multiple eligable characters ask which one they want to use.
 				for a in characters:  # Find what character was selected.
 					if a['Name'] == charactername:
 						character = a
@@ -419,7 +438,7 @@ class session(commands.Cog):
 			return
 		return
 
-	# Define a new command
+	# This command is for creating new sessions
 	@commands.command(
 		name='newsession',
 		description="posts a new session for players to react to, to sign up.",
@@ -427,36 +446,78 @@ class session(commands.Cog):
 		aliases=['ns']
 	)
 	async def NSCommand(self, ctx, *, information):
-		if not await checkperm(ctx, "DM", messageuser=False):
+		if not await checkperm(ctx, "DM", messageuser=False):  # check to see if the person is a dm or trial dm
 			if not await checkperm(ctx, "Trial DM",
-			                       message="You must have the Trial DM or DM Role to use this command"):
+								   message="You must have the Trial DM or DM Role to use this command"):
 				return
-		if not ctx.channel.category.name == "Quest":
+		if not ctx.channel.category.name == "Quest":  # check to see if the command was in the correct category
 			await ctx.author.send("Needs to be posted in the #Quest Category in the new channel")
 			return
-		if not ctx.channel.name == "new":
+		if not ctx.channel.name == "new":  # check to see if the command was in the correct channel
 			await ctx.author.send("Needs to be posted in the new category")
 			return
+		"""
+		The area below pulls information for the message needed for the session.
+		"""
 		datestart = information.find("Date=")
+		if datestart == -1:
+			await ctx.author.send("Missing Date=")
+			return
 		dateend = information.find("\n", datestart)
+		if dateend == -1:
+			await ctx.author.send("Missing Newline after Date")
+			return
 		date = information[datestart + 5:dateend]
 		whostart = information.find("Who=")
+		if whostart == -1:
+			await ctx.author.send("Missing Who=")
+			return
 		whoend = information.find("\n", whostart)
+		if whoend == -1:
+			await ctx.author.send("Missing Newline after Who")
+			return
 		who = information[whostart + 4:whoend]
 		programstart = information.find("Program=")
+		if programstart == -1:
+			await ctx.author.send("Missing Program=")
+			return
 		programend = information.find("\n", programstart)
+		if programend == -1:
+			await ctx.author.send("Missing Newline after programstart")
+			return
 		program = information[programstart + 8:programend]
 		timestart = information.find("Time=")
+		if timestart == -1:
+			await ctx.author.send("Missing Time=")
+			return
 		timeend = information.find("\n", timestart)
+		if timeend == -1:
+			await ctx.author.send("Missing New Line after Time")
+			return
 		time = information[timestart + 5:timeend]
 		allowedstart = information.find("Allowed=")
+		if allowedstart == -1:
+			await ctx.author.send("Missing Allowed=")
+			return
 		allowedend = information.find("\n", allowedstart)
+		if allowedend == -1:
+			await ctx.author.send("Missing Newline after Allowed")
+			return
 		allowed = information[allowedstart + 8: allowedend]
 		descriptionstart = information.find("Desc=")
+		if descriptionstart == -1:
+			await ctx.author.send("Missing Desc=")
+			return
 		descriptionend = len(information)
 		description = information[descriptionstart + 5:descriptionend]
 		durationstart = information.find("Length=")
+		if durationstart == -1:
+			await ctx.author.send("Missing Length=")
+			return
 		durationend = information.find("\n", durationstart)
+		if durationend == -1:
+			await ctx.author.send("Missing New line after Length")
+			return
 		duration = information[durationstart + 7:durationend]
 		host = ctx.author.mention
 		playerstart = information.find("Player=")
@@ -466,8 +527,9 @@ class session(commands.Cog):
 			playerend = information.find("\n", playerstart)
 			player = information[playerstart + 7:playerend]
 
-		low = 0
-		high = 0
+		low = 0  # lowest level taged
+		high = 0  # highest level tagged
+		# Area below checks to get the lowest and highest levels of the people in the role tag.
 		for p in ctx.message.role_mentions:
 			p.name = p.name.replace(" ", "")
 			rolesplit = p.name.split("-")
