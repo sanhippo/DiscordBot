@@ -321,7 +321,7 @@ class session(commands.Cog):
 				discordsplit = sessionmatch["All Discord ID's"].split(",")  # split up discord ids
 				cast = "__Cast__\n"  # title for discord
 				x = 0  # variable to search through
-				for x in range(0, sessionmatch["Signup Count"]-1):  # loop through allowed signups and add them
+				for x in range(0, sessionmatch["Signup Count"]):  # loop through allowed signups and add them
 					cast = cast + f"**Player:** <@!{discordsplit[x]}> | **Character:** {characterssplit[x]} | **Level:** {levelssplit[x]}\n"
 					if x >= sessionmatch["Player Count"]-1:  # if you hit the player cap break out
 						break
@@ -590,7 +590,7 @@ class session(commands.Cog):
 		else:
 			if reaction.emoji.name == 'Approved':
 				batch_get_activesessions = sheet_activesession.get_all_records()
-				if len(batch_get_activesessions) is 0:
+				if len(batch_get_activesessions) == 0:
 					assignedemogi = emojilist[0]
 				else:
 					for emoji in emojilist:

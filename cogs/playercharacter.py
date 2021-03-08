@@ -253,8 +253,8 @@ class playercharacter(commands.Cog):
                         character_data["Step"] = 200
                     await try_delete(sendmsg)
 
-        while 300 <= character_data["Step"] < 400:
-            candy = getallraces()
+        # while 300 <= character_data["Step"] < 400:
+        #     candy = getallraces()
 
 
 

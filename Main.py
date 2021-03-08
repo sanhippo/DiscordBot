@@ -103,25 +103,25 @@ async def on_message(message):
     cmdlower = messagesplit[0].lower()
     ctx.message.content = ctx.message.content.replace(messagesplit[0], cmdlower)
 
-    if ctx.channel.category.name == "in-character":
-        global datalogdealy
-        global shorttermdata
-        if datalogdealy is False:
-            shorttermdata = []
-            shorttermdata.append({"id": ctx.author.id, "count": len(ctx.message.content)})
-            datalogdealy = True
-            await functions.waittime(300)
-            functions.update_rp_data(shorttermdata)
-            datalogdealy = False
-
-        else:
-            for record in shorttermdata:
-                if record["id"] == ctx.author.id:
-                    record["count"] = record["count"] + len(ctx.message.content)
-                    break
-            if record["id"] != ctx.author.id:
-                shorttermdata.append({"id": ctx.author.id, "count": len(ctx.message.content)})
-            print("Heyo")
+    # if ctx.channel.category.name == "in-character":
+    #     global datalogdealy
+    #     global shorttermdata
+    #     if datalogdealy is False:
+    #         shorttermdata = []
+    #         shorttermdata.append({"id": ctx.author.id, "count": len(ctx.message.content)})
+    #         datalogdealy = True
+    #         await functions.waittime(300)
+    #         functions.update_rp_data(shorttermdata)
+    #         datalogdealy = False
+    #
+    #     else:
+    #         for record in shorttermdata:
+    #             if record["id"] == ctx.author.id:
+    #                 record["count"] = record["count"] + len(ctx.message.content)
+    #                 break
+    #         if record["id"] != ctx.author.id:
+    #             shorttermdata.append({"id": ctx.author.id, "count": len(ctx.message.content)})
+    #         print("Heyo")
 
     if ctx.command is not None:
         await bot.invoke(ctx)
